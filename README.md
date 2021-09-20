@@ -1,2 +1,2 @@
-# Apophis
-Apophis is my tiny, interpreted declarative Programming Language.
+# Leuchtkraft
+Leuchtkraft is my tiny, interpreted declarative Programming Language.
