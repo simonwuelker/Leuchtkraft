@@ -1,39 +1,39 @@
+use lazy_static::lazy_static;
+use regex::RegexSet;
+
 pub enum Token {
     Comment,
+    Variable(String),
+    Question,
+    Colon,
     EOF,
 }
 
-enum State {
-    Clear,
-    Comment,
-}
-
-pub struct Interpreter {
-    /// The program code to be executed
+/// Converts the program into a stream of tokens
+pub struct Lexer {
     text: String,
+    pos: usize,
 }
 
-impl Interpreter {
+impl Lexer {
     pub fn new(text: String) -> Self {
         Self {
             text: text,
+            pos: 0,
         }
     }
 
-    pub fn tokenize(self) -> Vec<Token> {
-        let mut state = State::Clear;
-
-        for c in self.text.chars() {
-            match &c {
-                '#' => state = State::Comment,
-                '\r' | '\n' => state = State::Clear,
-                _ => {}
-            }
-            if let State::Comment = state {
-            } else {
-                println!("{:?}", c);
-            }
+    pub fn read_tokens(&mut self) {
+        lazy_static! {
+            static ref set: RegexSet = RegexSet::new(&[
+                r"#.*\n", // Oneline Comments
+                r"[\w]+", // Variable Names
+                r"\?", // questions
+                r":", // Colons
+            ]).unwrap();
         }
-        vec![]
+        for m in set.matches(&self.text).iter() {
+            println!("{:?}", m.start);
+        }
     }
 }
