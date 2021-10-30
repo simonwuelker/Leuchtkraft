@@ -1,12 +1,36 @@
 use lazy_static::lazy_static;
-use regex::RegexSet;
+use regex::Regex;
+use anyhow::{Result, bail};
+
+macro_rules! search_for_token {
+    ($ptr: ident, $firsttoken: ident, $($token: ident), *) => {
+        if let Some(m) = $firsttoken.find($ptr) {
+            $ptr = &$ptr[m.end()..];
+            Token::$firsttoken
+        }
+        $(
+        else if let Some(m) = $token.find($ptr) {
+            $ptr = &$ptr[m.end()..];
+            Token::$token
+        }
+        )*
+        else {
+            bail!("Syntax Error")
+        }
+
+    }
+}
+
+macro_rules! create_regex {
+    ($name: expr) => {
+        Regex::new(format!(r"^\s*{}", $expr)).unwrap()
+    }
+}
 
 pub enum Token {
-    Comment,
-    Variable(String),
-    Question,
-    Colon,
-    EOF,
+    IDENT,
+    QUESTION,
+    COLON,
 }
 
 /// Converts the program into a stream of tokens
@@ -23,17 +47,25 @@ impl Lexer {
         }
     }
 
-    pub fn read_tokens(&mut self) {
+    pub fn read_tokens(&mut self) -> Result<Vec<Token>> {
+        let COMMENT: Regex = create_regex!(r"#.*((\r\n)|\n|\r)");
         lazy_static! {
-            static ref set: RegexSet = RegexSet::new(&[
-                r"#.*\n", // Oneline Comments
-                r"[\w]+", // Variable Names
-                r"\?", // questions
-                r":", // Colons
-            ]).unwrap();
+        //    static ref COMMENT: Regex = create_regex!(r"#.*((\r\n)|\n|\r)");
+            static ref IDENT: Regex = Regex::new(r"^[\w]+").unwrap();
+            static ref QUESTION: Regex = Regex::new(r"^\?").unwrap();
+            static ref COLON: Regex = Regex::new(r"^:").unwrap();
         }
-        for m in set.matches(&self.text).iter() {
-            println!("{:?}", m.start);
+        let mut tokens = vec![];
+        let mut ptr = &self.text[..];
+        while ptr.len() != 0 {
+            if let Some(m) = COMMENT.find(ptr) {
+                println!("found a comment: {:?}", m.as_str());
+                ptr = &self.text[m.end()..];
+            } else {
+                tokens.push(search_for_token!(ptr, IDENT, QUESTION, COLON));
+            }
+            println!("remaining source code: {:?}", ptr);
         }
+        Ok(tokens)
     }
 }
