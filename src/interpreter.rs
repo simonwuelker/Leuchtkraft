@@ -1,71 +1,37 @@
-use lazy_static::lazy_static;
-use regex::Regex;
-use anyhow::{Result, bail};
+type Identifier = String;
 
-macro_rules! search_for_token {
-    ($ptr: ident, $firsttoken: ident, $($token: ident), *) => {
-        if let Some(m) = $firsttoken.find($ptr) {
-            $ptr = &$ptr[m.end()..];
-            Token::$firsttoken
-        }
-        $(
-        else if let Some(m) = $token.find($ptr) {
-            $ptr = &$ptr[m.end()..];
-            Token::$token
-        }
-        )*
-        else {
-            bail!("Syntax Error")
-        }
-
-    }
+pub struct Program {
+    pub background_knowledge: Vec<HornClause>,
+    /// positive and negative training examples
+    pub training_data: Vec<Literal>,
+    /// The predicate whose clauses must be derived from the background knowledge so they match the training data
+    pub target_clause: Literal,
 }
 
-macro_rules! create_regex {
-    ($name: expr) => {
-        Regex::new(format!(r"^\s*{}", $expr)).unwrap()
-    }
+/// head <= all(body)
+pub struct HornClause {
+    pub head: Literal,
+    pub body: Vec<Literal>,
 }
 
-pub enum Token {
-    IDENT,
-    QUESTION,
-    COLON,
+/// Solve the program using FOIL
+pub fn simulate(program: Program) {
+    // Initialize the target predicate with an empty body
+    let mut result = HornClause {
+        head: program.target_clause,
+        body: vec![],
+    };
+
+    // Continue to add literals to the target predicate body until all positive (and none of the negative) training samples are matched
 }
 
-/// Converts the program into a stream of tokens
-pub struct Lexer {
-    text: String,
-    pos: usize,
+pub fn compile(program: Program) {
+    unimplemented!();
 }
 
-impl Lexer {
-    pub fn new(text: String) -> Self {
-        Self {
-            text: text,
-            pos: 0,
-        }
-    }
-
-    pub fn read_tokens(&mut self) -> Result<Vec<Token>> {
-        let COMMENT: Regex = create_regex!(r"#.*((\r\n)|\n|\r)");
-        lazy_static! {
-        //    static ref COMMENT: Regex = create_regex!(r"#.*((\r\n)|\n|\r)");
-            static ref IDENT: Regex = Regex::new(r"^[\w]+").unwrap();
-            static ref QUESTION: Regex = Regex::new(r"^\?").unwrap();
-            static ref COLON: Regex = Regex::new(r"^:").unwrap();
-        }
-        let mut tokens = vec![];
-        let mut ptr = &self.text[..];
-        while ptr.len() != 0 {
-            if let Some(m) = COMMENT.find(ptr) {
-                println!("found a comment: {:?}", m.as_str());
-                ptr = &self.text[m.end()..];
-            } else {
-                tokens.push(search_for_token!(ptr, IDENT, QUESTION, COLON));
-            }
-            println!("remaining source code: {:?}", ptr);
-        }
-        Ok(tokens)
-    }
+pub struct Literal {
+    pub is_negated: bool,
+    pub ident: Identifier,
+    pub arguments: Vec<Identifier>
 }
+
