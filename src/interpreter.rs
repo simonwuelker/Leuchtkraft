@@ -1,37 +1,58 @@
-type Identifier = String;
+use std::collections::HashMap;
+use crate::ast::{AstNode, UnaryOperator, BinaryOperator};
 
-pub struct Program {
-    pub background_knowledge: Vec<HornClause>,
-    /// positive and negative training examples
-    pub training_data: Vec<Literal>,
-    /// The predicate whose clauses must be derived from the background knowledge so they match the training data
-    pub target_clause: Literal,
+pub struct Interpreter {
+    state: HashMap<String, i32>,
 }
 
-/// head <= all(body)
-pub struct HornClause {
-    pub head: Literal,
-    pub body: Vec<Literal>,
+impl Interpreter {
+    pub fn new() -> Self {
+        Self {
+            state: HashMap::new(),
+        }
+    }
+
+    pub fn traverse(&mut self, root: AstNode) -> Option<i32> {
+        match root {
+            AstNode::Program(children) => {
+                for child in children {
+                    self.traverse(child);
+                }
+                None
+            },
+            AstNode::Integer(num) => Some(num),
+            AstNode::Variable(name) => Some(*self.state.get(&name).expect("Undefined")),
+            AstNode::UnaryExpression{op, expr} => {
+                let e = self.traverse(*expr).unwrap();
+                match op {
+                    UnaryOperator::Plus => Some(e),
+                    UnaryOperator::Minus => Some(-1 * e),
+                }
+            },
+            AstNode::BinaryExpression{lhs, op, rhs} => {
+                let lh = self.traverse(*lhs).unwrap();
+                let rh = self.traverse(*rhs).unwrap();
+                match op {
+                    BinaryOperator::Plus => Some(lh + rh),
+                    BinaryOperator::Minus => Some(lh - rh),
+                    BinaryOperator::Multiply => Some(lh * rh),
+                    BinaryOperator::Divide => Some(lh / rh),
+                }
+            }
+            AstNode::Assignment{lhs, rhs} => {
+                if let AstNode::Variable(name) = *lhs {
+                    let res = self.traverse(*rhs).unwrap();
+                    self.state.insert(name, res);
+                    None
+                } else {
+                    panic!("Expected value on lhs of assigment");
+                }
+            },
+            AstNode::Print(expr) => {
+                println!("{}", self.traverse(*expr).unwrap());
+                None
+            }
+
+        }
+    }
 }
-
-/// Solve the program using FOIL
-pub fn simulate(program: Program) {
-    // Initialize the target predicate with an empty body
-    let mut result = HornClause {
-        head: program.target_clause,
-        body: vec![],
-    };
-
-    // Continue to add literals to the target predicate body until all positive (and none of the negative) training samples are matched
-}
-
-pub fn compile(program: Program) {
-    unimplemented!();
-}
-
-pub struct Literal {
-    pub is_negated: bool,
-    pub ident: Identifier,
-    pub arguments: Vec<Identifier>
-}
-

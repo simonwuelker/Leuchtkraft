@@ -1,6 +1,7 @@
 # Knowledge base
 Karl: Male
 Maria: Female
+Male || Female || Other => Human
 
-# Is Karl male?
-Karl: Male?
+# Is Karl human?
+Karl: Human?

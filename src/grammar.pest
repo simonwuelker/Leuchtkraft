@@ -1,0 +1,26 @@
+WHITESPACE = _{ " " }
+COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+Word = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+Integer = @{ UnaryOperator? ~ ASCII_DIGIT+ }
+
+Plus = { "+" }
+Minus = { "-" }
+Multiply = { "*" }
+Divide = { "/" }
+UnaryOperator = _{ Plus | Minus }
+BinaryOperator = _{ Plus | Minus | Multiply | Divide }
+
+Assignment = { Word ~ "=" ~ Expression }
+Expression = _{ UnaryExpression | BinaryExpression | Term }
+UnaryExpression = { UnaryOperator ~ Term }
+BinaryExpression = { Term ~ BinaryOperator ~ Term }
+Term = _{ Word | Integer | "(" ~ Expression ~ ")" }
+Print = { ">>>" ~ Expression }
+
+Line = _{ Assignment | Print } 
+Program = {
+    SOI ~
+    (Line? ~ NEWLINE)* ~
+    EOI
+}
