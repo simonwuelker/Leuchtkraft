@@ -6,6 +6,7 @@ mod util;
 mod ast;
 mod interpreter;
 mod parser;
+mod error;
 
 use std::fs;
 use interpreter::Interpreter;
@@ -15,7 +16,6 @@ fn main() {
     let unparsed_file = fs::read_to_string(filename).expect("cannot read file");
     match parser::parse_str(&unparsed_file) {
         Ok(ast) => {
-            println!("Parsed Successfully");
             let mut i = Interpreter::new();
             i.traverse(ast);
         },

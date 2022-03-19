@@ -1,53 +1,36 @@
 use pest::iterators::Pair;
 use crate::parser::Rule;
+use crate::error::*;
 
-pub enum UnaryOperator {
-    Plus,
-    Minus,
+#[derive(Debug)]
+pub enum Atom {
+    Boolean(bool),
+    Predicate {
+        name: String,
+        args: Vec<String>,
+    },
 }
 
-pub enum BinaryOperator {
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-}
-
+#[derive(Debug)]
 pub enum AstNode {
     Program(Vec<AstNode>),
-    Print(Box<AstNode>),
-    Integer(i32),
-    Variable(String),
-    UnaryExpression {
-        op: UnaryOperator,
-        expr: Box<AstNode>
+    Question {
+        body: Atom,
     },
-    BinaryExpression {
-        lhs: Box<AstNode>,
-        op: BinaryOperator,
-        rhs: Box<AstNode>,
+    HornClause {
+        head: Atom,
+        body: Vec<Atom>,
     },
-    Assignment {
-        lhs: Box<AstNode>,
-        rhs: Box<AstNode>,
-    }
 }
 
 impl AstNode {
-    pub fn from_tree(pair: Pair<Rule>) -> AstNode {
-        match pair.as_rule() {
-            Rule::Assignment => {
-                let mut children = pair.into_inner();
-                Self::Assignment {
-                    lhs: Box::new(Self::from_tree(children.next().unwrap())),
-                    rhs: Box::new(Self::from_tree(children.next().unwrap())),
+    pub fn from_tree(pair: Pair<Rule>) -> Result<AstNode, Error> {
+        let node = match pair.as_rule() {
+            Rule::Question => {
+                let child = pair.into_inner().next().unwrap();
+                Self::Question {
+                    body: Atom::from_pair(child),
                 }
-            },
-            Rule::Word => Self::Variable(pair.as_str().to_string()),
-            Rule::Integer => Self::Integer(pair.as_str().parse().unwrap()),
-            Rule::Print => {
-                let expr = pair.into_inner().next().unwrap();
-                Self::Print(Box::new(Self::from_tree(expr)))
             },
             Rule::Program => {
                 let mut childnodes = vec![];
@@ -55,42 +38,62 @@ impl AstNode {
                     if let Rule::EOI = child.as_rule() {
                         break;
                     }
-                    childnodes.push(Self::from_tree(child));
+                    childnodes.push(Self::from_tree(child)?);
                 }
                 Self::Program(childnodes)
             },
-            Rule::BinaryExpression => {
-                let mut children = pair.into_inner();
-                Self::BinaryExpression {
-                    lhs: Box::new(Self::from_tree(children.next().unwrap())),
-                    op: BinaryOperator::from_pair(children.next().unwrap()),
-                    rhs: Box::new(Self::from_tree(children.next().unwrap())),
+            Rule::Rule => {
+                let mut children: Vec<Atom> = pair.into_inner()
+                    .map(|p| Atom::from_pair(p))
+                    .collect();
+                let head = children.pop().unwrap();
+
+                Self::HornClause {
+                    head: head,
+                    body: children,
                 }
             },
-            _ => todo!("{:?} pair", pair.as_rule()),
-        }
+            Rule::Predicate => {
+                let mut idents = pair.into_inner().map(|p| p.to_string());
+                Self::HornClause {
+                    head: Atom::Predicate {
+                        name: idents.next().unwrap(),
+                        args: idents.collect(),
+                    },
+                    body: vec![Atom::Boolean(true)],
+                }
+            },
+            _ => unimplemented!("\"{:?}\" pair", pair.as_rule()),
+        };
+        Ok(node)
     }
 
 }
 
-impl UnaryOperator {
+impl Atom {
     fn from_pair(pair: Pair<Rule>) -> Self {
-        match pair.as_rule() {
-            Rule::Plus => Self::Plus,
-            Rule::Minus => Self::Minus,
-            _ => unreachable!("Expected unary operator, got {:?}", pair.as_rule()),
-        }
-    }
-}
+        assert_eq!(
+            std::mem::discriminant(&Rule::Atom), 
+            std::mem::discriminant(&pair.as_rule())
+        );
 
-impl BinaryOperator {
-    fn from_pair(pair: Pair<Rule>) -> Self {
-        match pair.as_rule() {
-            Rule::Plus => Self::Plus,
-            Rule::Minus => Self::Minus,
-            Rule::Multiply => Self::Multiply,
-            Rule::Divide => Self::Divide,
-            _ => unreachable!("Expected binary operator, got {:?}", pair.as_rule()),
+        let child = pair.into_inner().next().unwrap();
+        match child.as_rule() {
+            Rule::Predicate => {
+                let mut idents = child.into_inner().map(|p| p.to_string());
+                Self::Predicate {
+                    name: idents.next().unwrap(),
+                    args: idents.collect(),
+                }
+            },
+            Rule::Boolean => {
+                match child.as_str() {
+                    "true" => Self::Boolean(true),
+                    "false" => Self::Boolean(false),
+                    _ => unreachable!(),
+                }
+            },
+            _ => unreachable!("Converting non-atom value to atom"),
         }
     }
 }

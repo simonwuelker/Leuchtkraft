@@ -1,4 +1,5 @@
-use pest::error::{Error, LineColLocation, ErrorVariant};
+// use pest::error::{Error, LineColLocation, ErrorVariant};
+use crate::error::*;
 use colored::*;
 
 
@@ -55,34 +56,20 @@ impl Printer {
 }
 
 
-pub fn print_parse_error<R: std::fmt::Debug>(err: Error<R>, file: &str, filename: &str) {
+pub fn print_parse_error(err: Error, file: &str, filename: &str) {
     let mut printer = Printer::new();
-    let (errortype, info) = match err.variant {
-        ErrorVariant::ParsingError{positives, negatives} => {
-            let msg = if positives.len() == 1 {
-                format!("Expected {:?}", positives[0])
-            } else {
-                format!("Expected any of {:?}", positives)
-            };
-            ("Parse Error:", msg.clone())
-
-        },
-        ErrorVariant::CustomError{message} => {
-            ("Custom Error", message.clone())
-        }
-    };
-    printer.print(&errortype.red().bold());
+    printer.print(&err.name().red().bold());
 
     match err.line_col {
         LineColLocation::Pos(pos) => {
             printer.start_context(filename, pos.0, pos.1);
             let faulty_line = file.lines().nth(pos.0 - 1).unwrap();
             printer.print_with_line_nr(faulty_line);
-            printer.annotate(pos.1 - 1, &info);
+            printer.annotate(pos.1 - 1, &err.details());
             printer.end_context();
             printer.print("");
         },
-        LineColLocation::Span(start, end) => {
+        LineColLocation::Span(_start, _end) => {
             unimplemented!();
         },
     }

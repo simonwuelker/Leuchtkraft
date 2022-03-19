@@ -1,24 +1,17 @@
+// Quietly ignore any whitespaces and comments
 WHITESPACE = _{ " " }
-COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | ("//" ~ (!NEWLINE ~ ANY)*)}
 
-Word = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-Integer = @{ UnaryOperator? ~ ASCII_DIGIT+ }
+Ident = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+Boolean = { "true" | "false" }
 
-Plus = { "+" }
-Minus = { "-" }
-Multiply = { "*" }
-Divide = { "/" }
-UnaryOperator = _{ Plus | Minus }
-BinaryOperator = _{ Plus | Minus | Multiply | Divide }
+Rule = { Expression ~ "=>" ~ Atom }
+Expression = _{ Atom ~ ("and" ~ Atom)* }
+Predicate = { Ident ~ "(" ~ Ident ~ ("," ~ Ident)* ~  ")" }
+Question = { Atom ~ "?" }
+Atom = { Boolean | Predicate }
 
-Assignment = { Word ~ "=" ~ Expression }
-Expression = _{ UnaryExpression | BinaryExpression | Term }
-UnaryExpression = { UnaryOperator ~ Term }
-BinaryExpression = { Term ~ BinaryOperator ~ Term }
-Term = _{ Word | Integer | "(" ~ Expression ~ ")" }
-Print = { ">>>" ~ Expression }
-
-Line = _{ Assignment | Print } 
+Line = _{ Rule | Question | Predicate} 
 Program = {
     SOI ~
     (Line? ~ NEWLINE)* ~
