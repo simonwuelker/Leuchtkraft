@@ -1,7 +1,11 @@
-# Knowledge base
-Karl: Male
-Maria: Female
-Male || Female || Other => Human
+/* Logic clauses */
+bird(X) and healthy(X) => canfly(X) // Healthy birds can fly
+wounded(X) and healthy(X) => false // A bird cant both be healthy and wounded
 
-# Is Karl human?
-Karl: Human?
+/* Facts */
+bird(john)
+bird(mary)
+wounded(john)
+
+/* Conclusions */
+canfly(john)?

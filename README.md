@@ -12,3 +12,7 @@ compiles to LLVM, it will run on all modern architectures as well.
 
 The concept of two different execution mode was shamelessly stolen from [Porth](https://github.com/tsoding/porth).
 
+## Syntax Highlighting
+Copy the highlighting script (`le.vim`) to the `~/.vim/syntax/le.vim`.
+Then create `~/.vim/ftdetect/le.vim` and write `au BufRead,BufNewFile *.le set filetype=le`
+to it to associate .le files with leuchtkraft scripts.
