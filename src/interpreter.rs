@@ -1,9 +1,11 @@
-use crate::ast::AstNode;
-use crate::logic::{atom::Atom, clause::HornClause};
+use std::collections::HashMap;
+use crate::logic::{atom::Atom, clause::Clause, Ident};
 use crate::error::Error;
 
+type Interpretation = HashMap<Atom, bool>;
+
 pub struct Interpreter {
-    known_clauses: Vec<HornClause>,
+    known_clauses: Vec<Clause>,
 }
 
 impl Interpreter {
@@ -13,21 +15,15 @@ impl Interpreter {
         }
     }
 
-    pub fn traverse(&mut self, root: AstNode) -> Result<(), Error> {
-        match root {
-            AstNode::Program(children) => {
-                for child in children {
-                    self.traverse(child)?;
-                }
-            },
-            AstNode::HornClause(clause) => self.known_clauses.push(clause),
-            // AstNode::Question(atom) => {
-            //     match self.resolve(&atom) {
-            //         Some(answer) => println!("The answer is: {}", answer),
-            //         None => println!("Answer cannot be determined"),
-            //     }
-            // },
-            _ => unimplemented!("{:?}", root),
+    pub fn traverse(&mut self, clauses: Vec<Clause>) -> Result<(), Error> {
+        for clause in clauses {
+            // If the clause contains unknown values, its a question
+            if clause.contains(&Atom::Unknown) {
+                let mut i = Interpretation::new();
+
+            } else {
+                self.known_clauses.push(clause);
+            }
         }
         Ok(())
     }
@@ -35,17 +31,13 @@ impl Interpreter {
     fn resolve(&self, atom: &Atom) -> Option<bool> {
         match atom {
             Atom::Boolean(val) => Some(*val),
-            Atom::Predicate{ name, args } => {
-                // Test if the statement is **true**
-                for clause in &self.known_clauses {
-                    if atom ==&clause.head {
-                        if let Some(true) = self.resolve_all(&clause.body) {
-                            return Some(true);
-                        }
-                    }
-                }
+            Atom::Predicate{ ... } => {
+                let next = self.try_find_match(atom);
+                println!("{:?}", next);
                 None
-                // Test if the statement is **false**
+            }
+            Unknown => {
+                None
             }
         }
     }
@@ -59,5 +51,15 @@ impl Interpreter {
             };
         }
         Some(true)
+    }
+
+    fn try_find_match(&self, atom: &Atom) -> Option<Clause> {
+        for clause in &self.known_clauses {
+            let matched = clause.try_match(atom);
+            if matched.is_some() {
+                return matched;
+            }
+        }
+        None
     }
 }

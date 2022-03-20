@@ -88,7 +88,7 @@ impl Error {
 
     pub fn details(&self) -> String {
         match &self.variant {
-            ErrorVariant::SyntaxError{ positives, negatives } => {
+            ErrorVariant::SyntaxError{ positives, negatives: _ } => {
                 if positives.len() == 1 {
                     format!("Expected {:?}", positives[0]).clone()
                 } else {
