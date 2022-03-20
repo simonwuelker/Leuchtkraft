@@ -1,18 +1,29 @@
 # Leuchtkraft
-Leuchtkraft is my tiny declarative Programming Language. It can run in two modes: Interpretation and Compilation.
-Like Prolog, it is a logical programming language. To be specific, its a inductive logical language.
+Leuchtkraft is my tiny, declarative Programming Language.
 
-## Interpretation Mode
-Interpretation Mode is meant for debugging your program. It can provide faster feedback loops when writing code that Compile mode
-but will run slower than the compiled version. Since the Leuchtkraft interpreter is written in Rust, it works on all modern architectures.
+A basic Leuchtkraft program might look like this:
+```
+/* Logic clauses */
+forall X {
+    bird(X) and healthy(X) <=> canfly(X) // only healthy birds can fly
+    wounded(X) and healthy(X) => false // A object can't both be healthy and wounded
+}
 
-## Compilation Mode
-Compilation mode will compile the program into LLVM bytecode, taking longer to build but increasing runtime performance. Since Leuchtkraft
-compiles to LLVM, it will run on all modern architectures as well.
+/* Facts */
+true => bird(john) and bird(mary) and bird(jane) // john, mary and jane are birds
+true => wounded(john) // john is wounded
+true => healthy(jane) // jane is healthy
 
-The concept of two different execution mode was shamelessly stolen from [Porth](https://github.com/tsoding/porth).
+/* Conclusions */
+canfly(john) => ? // False (john is not a healthy bird)
+canfly(mary) => ? // Indeterminate (mary's health is unknown)
+canfly(jane) => ? // True (jane is a healthy bird)
+```
 
 ## Syntax Highlighting
+I only include vim scripts because if you are not using vim, are you really a programmer?
+
 Copy the highlighting script (`le.vim`) to the `~/.vim/syntax/le.vim`.
-Then create `~/.vim/ftdetect/le.vim` and write `au BufRead,BufNewFile *.le set filetype=le`
-to it to associate .le files with leuchtkraft scripts.
+Then create `~/.vim/ftdetect/le.vim` and write 
+`au BufRead,BufNewFile *.le set filetype=le` to it to associate .le files 
+with leuchtkraft scripts.

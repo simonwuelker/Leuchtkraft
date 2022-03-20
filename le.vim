@@ -7,7 +7,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword leuchtkraftKeyword and 
+syn keyword leuchtkraftKeyword and forall
 syn keyword leuchtkraftKeyword "=>"
 syn keyword leuchtkraftBoolean true false
 syn keyword leuchtkraftQuestion "?"

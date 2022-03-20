@@ -1,23 +1,26 @@
 use crate::parser::Rule;
 use std::string::ToString;
 
+#[derive(Debug)]
 pub struct Error {
     pub variant: ErrorVariant,
     pub line_col: LineColLocation,
 }
 
+#[derive(Debug)]
 pub enum LineColLocation {
     Pos((usize, usize)),
     Span((usize, usize), (usize, usize)),
 }
 
+#[derive(Debug)]
 pub enum ErrorVariant {
     /// Like pest::error::ErrorVariant::ParsingError
     SyntaxError {
         positives: Vec<Rule>,
         negatives: Vec<Rule>,
     },
-    ParseError,
+    ParseError(String),
     Custom(String),
 }
 
@@ -55,11 +58,30 @@ impl From<pest::error::LineColLocation> for LineColLocation {
     }
 }
 
+impl From<pest::Span<'_>> for LineColLocation {
+    fn from(span: pest::Span) -> Self {
+        let start = span.start_pos();
+        let end = span.end_pos();
+        if start == end {
+            Self::Pos(start.line_col())
+        } else {
+            Self::Span(start.line_col(), end.line_col())
+        }
+    }
+}
+
 impl Error {
+    pub fn from_pair(span: pest::Span, details: String) -> Self {
+        Self {
+            variant: ErrorVariant::ParseError(details),
+            line_col: LineColLocation::from(span),
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self.variant {
             ErrorVariant::SyntaxError{ .. } => "Syntax Error",
-            ErrorVariant::ParseError => "Parse Errr",
+            ErrorVariant::ParseError(_) => "Parse Error",
             ErrorVariant::Custom(_) => "Custom Error",
         }
     }
@@ -73,7 +95,7 @@ impl Error {
                     format!("Expected any of {:?}", positives).clone()
                 }
             },
-            ErrorVariant::ParseError => "parse error here!".to_string(),
+            ErrorVariant::ParseError(msg) => msg.to_string(),
             ErrorVariant::Custom(msg) => msg.to_string(),
         }
     }

@@ -1,37 +1,22 @@
 use pest::iterators::Pair;
 use crate::parser::Rule;
 use crate::error::*;
-
-#[derive(Debug)]
-pub enum Atom {
-    Boolean(bool),
-    Predicate {
-        name: String,
-        args: Vec<String>,
-    },
-}
+use crate::logic::{atom::Atom, clause::HornClause, Ident};
+use std::mem::discriminant;
 
 #[derive(Debug)]
 pub enum AstNode {
     Program(Vec<AstNode>),
-    Question {
-        body: Atom,
-    },
-    HornClause {
-        head: Atom,
-        body: Vec<Atom>,
-    },
+    ScopeNode(Vec<Ident>, Vec<AstNode>),
+    HornClause(HornClause),
+    Question(HornClause),
 }
 
 impl AstNode {
     pub fn from_tree(pair: Pair<Rule>) -> Result<AstNode, Error> {
+        log::info!(target: "AST", "Parsing {:?} as {:?}", pair.as_str(), pair.as_rule());
+
         let node = match pair.as_rule() {
-            Rule::Question => {
-                let child = pair.into_inner().next().unwrap();
-                Self::Question {
-                    body: Atom::from_pair(child),
-                }
-            },
             Rule::Program => {
                 let mut childnodes = vec![];
                 for child in pair.into_inner() {
@@ -42,58 +27,48 @@ impl AstNode {
                 }
                 Self::Program(childnodes)
             },
-            Rule::Rule => {
-                let mut children: Vec<Atom> = pair.into_inner()
-                    .map(|p| Atom::from_pair(p))
-                    .collect();
-                let head = children.pop().unwrap();
+            Rule::Scopeblock => {
+                let (idents, stmts): (Vec<Pair<Rule>>, Vec<Pair<Rule>>) = pair.into_inner()
+                    .partition(|e| discriminant(&Rule::Ident) == discriminant(&e.as_rule()));
 
-                Self::HornClause {
-                    head: head,
-                    body: children,
-                }
+                Self::ScopeNode(
+                    idents.iter().map(|i| i.as_str().to_string()).collect(),
+                    stmts.iter().map(|s| AstNode::from_tree(s.clone()).unwrap()).collect(),
+                )
             },
-            Rule::Predicate => {
-                let mut idents = pair.into_inner().map(|p| p.to_string());
-                Self::HornClause {
-                    head: Atom::Predicate {
-                        name: idents.next().unwrap(),
-                        args: idents.collect(),
+            Rule::Rule => {
+                let mut children: Vec<Pair<Rule>> = pair.into_inner()
+                    .collect();
+                // If the rule contains unknowns, its a question
+                let num_unknowns = children
+                    .iter()
+                    .filter(|p| discriminant(p) == discriminant(&Rule::Unknown))
+                    .count();
+
+                match num_unknowns {
+                    0 => {
+                        let atoms = children.iter().map(|p| Atom::from_pair(p)).collect();
+                        let head = atoms.pop().unwrap();
+
+                        Self::HornClause(HornClause {
+                            head: head,
+                            body: atoms,
+                        })
                     },
-                    body: vec![Atom::Boolean(true)],
+                    1 => {
+                        todo!()
+                    },
+                    _ => {
+                        let err = "Clause contains more than two unknown variables".to_string();
+                        log::error!("{}", err);
+                        return Err(Error::from_pair(pair.as_span(), err));
+                    },
                 }
+
             },
             _ => unimplemented!("\"{:?}\" pair", pair.as_rule()),
         };
         Ok(node)
     }
 
-}
-
-impl Atom {
-    fn from_pair(pair: Pair<Rule>) -> Self {
-        assert_eq!(
-            std::mem::discriminant(&Rule::Atom), 
-            std::mem::discriminant(&pair.as_rule())
-        );
-
-        let child = pair.into_inner().next().unwrap();
-        match child.as_rule() {
-            Rule::Predicate => {
-                let mut idents = child.into_inner().map(|p| p.to_string());
-                Self::Predicate {
-                    name: idents.next().unwrap(),
-                    args: idents.collect(),
-                }
-            },
-            Rule::Boolean => {
-                match child.as_str() {
-                    "true" => Self::Boolean(true),
-                    "false" => Self::Boolean(false),
-                    _ => unreachable!(),
-                }
-            },
-            _ => unreachable!("Converting non-atom value to atom"),
-        }
-    }
 }

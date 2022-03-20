@@ -1,11 +1,15 @@
 /* Logic clauses */
-bird(X) and healthy(X) => canfly(X) // Healthy birds can fly
-wounded(X) and healthy(X) => false // A bird cant both be healthy and wounded
+forall X {
+    bird(X) and healthy(X) <=> canfly(X) // only healthy birds can fly
+    wounded(X) and healthy(X) => false // Things can't both be healthy and wounded
+}
 
 /* Facts */
-bird(john)
-bird(mary)
-wounded(john)
+true => bird(john) and bird(mary) and bird(jane) // john, mary and jane are birds
+true => wounded(john) // john is wounded
+true => healthy(jane) // jane is healthy
 
 /* Conclusions */
-canfly(john)?
+canfly(john) => ? // False (john is not a healthy bird)
+canfly(mary) => ? // Indeterminate (mary's health is unknown)
+canfly(jane) => ? // True (jane is a healthy bird)
