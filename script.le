@@ -1,9 +1,11 @@
 /* Logic clauses */
-forall X {
+forall X
     bird(X) and healthy(X) => canfly(X) // Healthy birds can fly
     canfly(X) => healthy(X)             // Things that fly are healthy
     wounded(X) and healthy(X) => false  // Things can't both be healthy and wounded
-}
+
+true => true
+true => false
 
 /* Facts */
 true => bird(john) and bird(mary) and bird(jane) // john, mary and jane are birds

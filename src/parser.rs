@@ -1,18 +1,16 @@
 use pest::Parser;
 
-use crate::ast::ast_from_tree;
 use crate::error::Error;
-use crate::logic::clause::Clause;
+use pest::iterators::Pair;
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct LEParser;
 
-pub fn parse_str(unparsed_file: &str) -> Result<Vec<Clause>, Error> {
-    log::info!(target: "Parser", "Calling pest");
-    let tree = LEParser::parse(Rule::Program, &unparsed_file)?
-        .next()
-        .unwrap();
-    log::info!(target: "Parser", "Parsing AST");
-    Ok(ast_from_tree(tree))
+/// Returns None if parsing was successful, but the line was empty
+/// and Err if parsing was not successful
+pub fn parse_line(line: &str) -> Result<Pair<Rule>, Error> {
+    let stmt = LEParser::parse(Rule::Line, &line)?.next().unwrap(); // can never fail
+
+    Ok(stmt)
 }

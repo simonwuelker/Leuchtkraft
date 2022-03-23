@@ -16,6 +16,7 @@ pub enum LineColLocation {
 #[derive(Debug)]
 pub enum ErrorVariant {
     /// Like pest::error::ErrorVariant::ParsingError
+    /// Should not be constructed manually
     SyntaxError {
         positives: Vec<Rule>,
         negatives: Vec<Rule>,
@@ -74,6 +75,13 @@ impl Error {
         Self {
             variant: ErrorVariant::ParseError(details),
             line_col: LineColLocation::from(span),
+        }
+    }
+
+    pub fn new(variant: ErrorVariant, line_col: LineColLocation) -> Self {
+        Self {
+            variant: variant,
+            line_col: line_col,
         }
     }
 

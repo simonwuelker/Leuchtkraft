@@ -1,4 +1,3 @@
-use crate::interpreter::Interpreter;
 use crate::logic::Ident;
 use crate::parser::Rule;
 use pest::iterators::Pair;

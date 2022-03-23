@@ -12,6 +12,6 @@ Rule = { Expression ~ (Implication ~ Expression)+ }
 Expression = _{ Atom ~ ("and" ~ Atom)* }
 Predicate = { Ident ~ "(" ~ Ident ~ ("," ~ Ident)* ~  ")" }
 Atom = { Boolean | Predicate | Unknown }
-Scopeblock = { "forall" ~ Ident ~ ("," ~ Ident)* ~ "{" ~ Stmt* ~ "}" }
-
+Scopeblock = { "forall" ~ Ident ~ ("," ~ Ident)* }
+Line = { SOI ~ (Rule | Scopeblock)? ~ EOI }
 Program = { SOI ~ (Stmt | Scopeblock)* ~ EOI }

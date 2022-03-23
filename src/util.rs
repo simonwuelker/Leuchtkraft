@@ -17,13 +17,26 @@ impl Printer {
         }
     }
 
-    pub fn annotate(&mut self, col: usize, msg: &str) {
-        self.print(&format!(
-            "{}{}{}",
-            " ".repeat(col),
-            "^___ ".red(),
-            msg.red()
-        ));
+    pub fn annotate(&mut self, line_col: &LineColLocation, msg: &str) {
+        match line_col {
+            LineColLocation::Pos((row, col)) => {
+                self.print(&format!(
+                    "{}{}{}",
+                    " ".repeat(*col),
+                    "^___ ".red(),
+                    msg.red()
+                ));
+            }
+            LineColLocation::Span(start, end) => {
+                self.print(&format!(
+                    "{}{}{}{}",
+                    " ".repeat(start.1 - 1),
+                    "^".repeat(end.1 - start.1).red(),
+                    "___ ".red(),
+                    msg.red(),
+                ));
+            }
+        }
     }
 
     pub fn print_with_line_nr(&mut self, msg: &str) {
@@ -67,17 +80,26 @@ pub fn print_parse_error(err: Error, file: &str, filename: &str) {
     let mut printer = Printer::new();
     printer.print(&err.name().red().bold());
 
-    match err.line_col {
+    match &err.line_col {
         LineColLocation::Pos(pos) => {
             printer.start_context(filename, pos.0, pos.1);
             let faulty_line = file.lines().nth(pos.0 - 1).unwrap();
             printer.print_with_line_nr(faulty_line);
-            printer.annotate(pos.1 - 1, &err.details());
+            printer.annotate(&err.line_col, &err.details());
             printer.end_context();
             printer.print("");
         }
-        LineColLocation::Span(_start, _end) => {
-            unimplemented!();
+        LineColLocation::Span(start, end) => {
+            if start.0 == end.0 {
+                printer.start_context(filename, start.0, start.1);
+                let faulty_line = file.lines().nth(start.0 - 1).unwrap();
+                printer.print_with_line_nr(faulty_line);
+                printer.annotate(&err.line_col, &err.details());
+                printer.end_context();
+                printer.print("");
+            } else {
+                unimplemented!("multiline annotations");
+            }
         }
     }
 }

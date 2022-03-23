@@ -1,76 +1,89 @@
-use crate::error::Error;
-use crate::logic::{
-    atom::{Atom, Predicate},
-    clause::Clause,
-};
-use std::collections::HashMap;
+use crate::error::{Error, ErrorVariant};
+use crate::logic::logic_engine::LogicEngine;
+use crate::logic::{atom::Atom, clause::Clause};
+use crate::parser::{self, Rule};
 
-type Interpretation = HashMap<Atom, bool>;
+type Ident = String;
+
+struct State {
+    inside_scopeblock: bool,
+    anon_vars: Vec<Ident>,
+}
 
 pub struct Interpreter {
     known_clauses: Vec<Clause>,
+    state: State,
+    logic: LogicEngine,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            inside_scopeblock: false,
+            anon_vars: vec![],
+        }
+    }
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
             known_clauses: vec![],
+            state: State::default(),
+            logic: LogicEngine::default(),
         }
     }
 
-    pub fn traverse(&mut self, clauses: Vec<Clause>) -> Result<(), Error> {
-        for clause in clauses {
-            if clause.is_question() {
-                println!("==> {}", self.resolve_clause(&clause));
-            } else {
-                self.known_clauses.push(clause);
+    pub fn execute(&mut self, line: &str) -> Result<Option<String>, Error> {
+        // Parse the line
+        let pair = parser::parse_line(line)?;
+
+        // last child is always EOI
+        for child in pair.clone().into_inner() {
+            match child.as_rule() {
+                Rule::Rule => {
+                    self.state.inside_scopeblock = false;
+
+                    let mut blocks = vec![vec![]];
+
+                    child
+                        .into_inner()
+                        .enumerate()
+                        .for_each(|(ix, node)| match node.as_rule() {
+                            Rule::Implication => blocks.push(vec![]),
+                            Rule::Atom => {
+                                blocks
+                                    .last_mut()
+                                    .unwrap()
+                                    .push(Atom::from_pair(node.clone()));
+                            }
+                            _ => unreachable!(),
+                        });
+                    let clause = Clause::new(blocks);
+                    if clause.is_question() {
+                        self.logic.resolve(clause);
+                    } else {
+                        self.logic.add_clause(clause);
+                    }
+                }
+                Rule::Scopeblock => {
+                    self.state.inside_scopeblock = true;
+
+                    for anon_var in child.into_inner() {
+                        let ident = anon_var.as_str().to_string();
+                        if self.state.anon_vars.contains(&ident) {
+                            return Err(Error::new(
+                                ErrorVariant::ParseError("Duplicate scoped variable".to_string()),
+                                anon_var.as_span().into(),
+                            ));
+                        } else {
+                            self.state.anon_vars.push(anon_var.as_str().to_string());
+                        }
+                    }
+                }
+                _ => {}
             }
         }
-        Ok(())
-    }
-
-    fn resolve_clause(&self, clause: &Clause) -> bool {
-        log::trace!(target: "Interpreter", "Resolving {:?}", clause);
-        let mut i = Interpretation::new();
-        let mut cloned = clause.clone();
-
-        // If A => B => C
-        // and we try to resolve C, only A matters
-
-        // If A => B
-        // and
-        // C => B => D
-        // and we try to resolve D, both A and B matter
-        // for mut atom in &cloned.lhs {
-        //     if let Atom::Predicate(predicate) = atom {
-        //         atom = self.resolve_predicate(&predicate);
-        //     }
-        // }
-        todo!();
-    }
-
-    fn resolve_predicate(&self, predicate: &Predicate) -> Atom {
-        let next = self.try_find_match(predicate);
-        println!("{:?}", next);
-        todo!();
-    }
-
-    /// Resolve an atom of any type into either Atom::Boolean or Atom::Unknown
-    fn resolve(&self, atom: &Atom) -> Atom {
-        match atom {
-            Atom::Boolean(_) => atom.clone(),
-            Atom::Predicate(predicate) => self.resolve_predicate(predicate),
-            Atom::Unknown(_) => atom.clone(),
-        }
-    }
-
-    fn try_find_match(&self, predicate: &Predicate) -> Option<Clause> {
-        for clause in &self.known_clauses {
-            let matched = clause.try_match(predicate);
-            if matched.is_some() {
-                return matched;
-            }
-        }
-        None
+        Ok(None)
     }
 }
