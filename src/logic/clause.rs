@@ -1,47 +1,48 @@
-use crate::logic::atom::{Atom, Var};
+use crate::logic::atom::{Atom, Predicate, Var};
+use std::cell::Cell;
 
 #[derive(Debug)]
-/// A logical implication of the form "A and B imply C and D" 
+/// A logical chain of implications and "and"s
 pub struct Clause {
-    /// The operands on the left hand side of the implication
-    pub lhs: Vec<Atom>,
-    /// The operands on the right hand side of the implication
-    pub rhs: Vec<Atom>,
-    pub implication: Implication,
-}
-
-#[derive(Debug)]
-pub enum Implication {
-    Unidirectional,
-    Bidirectional,
+    /// The operands within the clause
+    pub operands: Vec<Atom>,
+    /// The indices at which implications are placed
+    /// If no implication is placed between two operands, the 
+    /// connective is assumed to be "and"
+    pub implications_at: Vec<usize>,
 }
 
 impl Clause {
     pub fn replace(&mut self, to_replace: &Var, replace_with: &Var) {
-        for atom in &mut self.lhs {
-            atom.replace(to_replace, replace_with);
-        }
-        for atom in &mut self.rhs {
-            atom.replace(to_replace, replace_with);
+        for atom in &mut self.operands {
+            if let Atom::Predicate(predicate) = atom {
+                predicate.replace(to_replace, replace_with);
+            }
         }
     }
 
-    pub fn contains(&self, atom: &Atom) -> bool {
-        for operand in &self.lhs {
+    pub fn find(&self, atom: &Atom) -> Option<usize> {
+        let mut ix = 0;
+        for operand in &self.operands {
             if operand == atom {
-                return true;
+                return Some(ix);
             }
+            ix += 1;
         }
-        for operand in &self.rhs {
-            if operand == atom {
-                return true;
-            }
-        }
-        false
+        None
     }
 
-    pub fn try_match(&self, atom: &Atom) -> Option<Self> {
-        if self.contains(atom) {
+    pub fn is_question(&self) -> bool {
+        self.operands.iter().any(|op| {
+            match op {
+                Atom::Unknown(_) => true,
+                _ => false,
+            }
+        })
+    }
+
+    pub fn try_match(&self, predicate: &Predicate) -> Option<Self> {
+        if self.find(&Atom::Predicate(predicate.clone())).is_some() {
             let mut cloned = self.clone();
         }
         None

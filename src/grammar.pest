@@ -4,11 +4,11 @@ COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | ("//" ~ (!NEWLINE ~ ANY)*)}
 
 Ident = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 Boolean = { "true" | "false" }
-Implication = { "<=>" | "=>" | "<=" }
-Unknown = { "?" }
+Implication = { "=>" }
+Unknown = { Ident ~ "?" }
 
 Stmt = _{ Rule? ~ (NEWLINE | ";")+ }
-Rule = { Expression ~ Implication ~ Expression }
+Rule = { Expression ~ (Implication ~ Expression)+ }
 Expression = _{ Atom ~ ("and" ~ Atom)* }
 Predicate = { Ident ~ "(" ~ Ident ~ ("," ~ Ident)* ~  ")" }
 Atom = { Boolean | Predicate | Unknown }

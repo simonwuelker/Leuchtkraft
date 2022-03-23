@@ -2,7 +2,6 @@
 use crate::error::*;
 use colored::*;
 
-
 struct Printer {
     file_context: bool,
     line_nr: usize,
@@ -19,7 +18,12 @@ impl Printer {
     }
 
     pub fn annotate(&mut self, col: usize, msg: &str) {
-        self.print(&format!("{}{}{}", " ".repeat(col), "^___ ".red(), msg.red()));
+        self.print(&format!(
+            "{}{}{}",
+            " ".repeat(col),
+            "^___ ".red(),
+            msg.red()
+        ));
     }
 
     pub fn print_with_line_nr(&mut self, msg: &str) {
@@ -32,7 +36,11 @@ impl Printer {
                 self.line_nr += 1;
                 format!("{} |     ", self.line_nr - 1).blue()
             } else {
-                format!("{} |     ", " ".repeat(self.line_nr.to_string().chars().count())).blue()
+                format!(
+                    "{} |     ",
+                    " ".repeat(self.line_nr.to_string().chars().count())
+                )
+                .blue()
             }
         } else {
             "".white()
@@ -55,7 +63,6 @@ impl Printer {
     }
 }
 
-
 pub fn print_parse_error(err: Error, file: &str, filename: &str) {
     let mut printer = Printer::new();
     printer.print(&err.name().red().bold());
@@ -68,10 +75,9 @@ pub fn print_parse_error(err: Error, file: &str, filename: &str) {
             printer.annotate(pos.1 - 1, &err.details());
             printer.end_context();
             printer.print("");
-        },
+        }
         LineColLocation::Span(_start, _end) => {
             unimplemented!();
-        },
+        }
     }
 }
- 

@@ -36,15 +36,14 @@ impl From<pest::error::Error<Rule>> for Error {
 impl From<pest::error::ErrorVariant<Rule>> for ErrorVariant {
     fn from(pest_variant: pest::error::ErrorVariant<Rule>) -> Self {
         match pest_variant {
-            pest::error::ErrorVariant::ParsingError { positives, negatives } => {
-                Self::SyntaxError {
-                    positives: positives,
-                    negatives: negatives,
-                }
+            pest::error::ErrorVariant::ParsingError {
+                positives,
+                negatives,
+            } => Self::SyntaxError {
+                positives: positives,
+                negatives: negatives,
             },
-            pest::error::ErrorVariant::CustomError { message } => {
-                Self::Custom(message)
-            },
+            pest::error::ErrorVariant::CustomError { message } => Self::Custom(message),
         }
     }
 }
@@ -80,7 +79,7 @@ impl Error {
 
     pub fn name(&self) -> &str {
         match self.variant {
-            ErrorVariant::SyntaxError{ .. } => "Syntax Error",
+            ErrorVariant::SyntaxError { .. } => "Syntax Error",
             ErrorVariant::ParseError(_) => "Parse Error",
             ErrorVariant::Custom(_) => "Custom Error",
         }
@@ -88,16 +87,18 @@ impl Error {
 
     pub fn details(&self) -> String {
         match &self.variant {
-            ErrorVariant::SyntaxError{ positives, negatives: _ } => {
+            ErrorVariant::SyntaxError {
+                positives,
+                negatives: _,
+            } => {
                 if positives.len() == 1 {
                     format!("Expected {:?}", positives[0]).clone()
                 } else {
                     format!("Expected any of {:?}", positives).clone()
                 }
-            },
+            }
             ErrorVariant::ParseError(msg) => msg.to_string(),
             ErrorVariant::Custom(msg) => msg.to_string(),
         }
     }
 }
-
