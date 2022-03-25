@@ -1,0 +1,81 @@
+While parsing, build possibly disjunct statement trees.
+
+              false
+                ^
+                |
+            wounded(X)
+              and
+bird(X) and healthy(X) -> canfly(X)
+               ^
+               |
+            canfly(X)
+
+true -> bird(john)
+
+(not all trees included for clarity)
+Example for
+X? => canfly(john) => X?
+
+1) Unify all related clauses
+X? -> canfly(john) -> X?
+        ^
+        |         false
+        |           ^
+        |           |
+        |      wounded(john) <- true
+        |         and
+bird(john) and healthy(john)
+    ^
+    |
+   true
+
+2) Try to resolve all equations from a boolean
+X? -> canfly(john) -> X?
+        ^
+        |         false
+        |           ^
+        |           |
+        |         true
+        |         and
+   true and healthy(john)
+        
+        ||
+       \||/
+        \/
+
+X? -> canfly(john) -> X?
+        ^
+        |
+        |
+        |
+        |
+        |
+   true and false
+
+        ||
+       \||/
+        \/
+
+X? -> false -> X?
+
+3) Detect circular implications. Within circular implications, the truth value of every 
+    statement is equal. This should be step 2
+
+    false <-----> X?
+
+4) X? = false, done
+
+
+
+
+What do we need to do?
+* Easily access boolean atoms
+* Easily access the clauses that contain these atoms
+* Easily access the atoms from the clauses
+* Easily join trees
+
+The solution is something like a doubly linked list
+Every atom holds a reference to its clause
+Every clause holds cell references to its atoms
+The interpreter holds references to the boolean values
+Boolean values that "did their implication" can be removed.

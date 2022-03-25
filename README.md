@@ -5,8 +5,9 @@ A basic Leuchtkraft program might look like this:
 ```
 /* Logic clauses */
 forall X
-    bird(X) and healthy(X) <=> canfly(X) // only healthy birds can fly
-    wounded(X) and healthy(X) => false // A object can't both be healthy and wounded
+    bird(X) and healthy(X) => canfly(X) // Healthy birds can fly
+    canfly(X) => healthy(X)             // Things that fly are healthy
+    wounded(X) and healthy(X) => false  // Things can't both be healthy and wounded
 
 /* Facts */
 true => bird(john) and bird(mary) and bird(jane) // john, mary and jane are birds
@@ -14,18 +15,18 @@ true => wounded(john) // john is wounded
 true => healthy(jane) // jane is healthy
 
 /* Conclusions */
-canfly(john) => ? // False (john is not a healthy bird)
-canfly(mary) => ? // Indeterminate (mary's health is unknown)
-canfly(jane) => ? // True (jane is a healthy bird)
+X? => canfly(john) => X? // False (john is not a healthy bird)
+Y? => canfly(mary) => Y? // Indeterminate (mary's health is unknown)
+Z? => canfly(jane) => Z? // True (jane is a healthy bird)
 ```
 
 ## Road Map
 In order or priority: 
-* Logic resolver
-* Great build warnings/errors
-* WASM app for testing
-* REPL
-* Compiler and (if we feel really fancy) JIT
+- [ ] Logic resolver
+- [ ] Great build warnings/errors
+- [ ] WASM app for testing
+- [ ] REPL
+- [ ] Compiler and (if we feel really fancy) JIT
 
 
 ## Syntax Highlighting

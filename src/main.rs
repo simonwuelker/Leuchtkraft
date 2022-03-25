@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 #![feature(slice_take)]
 
 extern crate pest;
@@ -26,7 +27,6 @@ fn main() {
         let file = fs::read_to_string(filename).expect("cannot read file");
 
         for line in file.lines() {
-            println!("{:?}", line);
             match i.execute(line) {
                 Ok(Some(out)) => println!("=> {}", out),
                 Err(err) => {} // util::print_parse_error(err, &line, &filename),
@@ -43,10 +43,11 @@ fn main() {
     }
 }
 
+/// Start a interactive Leuchtkraft shell
 fn run_repl(mut i: Interpreter) {
     let mut buffer = String::new();
 
-    println!("Leuchtkraft Version {}", env!("CARGO_PKG_VERSION"));
+    println!("Leuchtkraft version {}", env!("CARGO_PKG_VERSION"));
     println!("Type 'quit' to exit the shell");
 
     loop {
@@ -59,7 +60,6 @@ fn run_repl(mut i: Interpreter) {
 
         match buffer.trim() {
             "quit" => break,
-            "info" => println!("type 'quit' to exit"),
             _ => match i.execute(&buffer) {
                 Ok(Some(out)) => println!("=> {}", out),
                 Err(err) => util::print_parse_error(err, &buffer, "REPL"),
