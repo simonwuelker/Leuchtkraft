@@ -1,5 +1,5 @@
-use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
 use super::annotation::{DisplaySnippet, InputLocation};
+use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
 
 #[derive(Debug)]
 /// Information about an interruption of the execution that cannot
@@ -43,23 +43,22 @@ impl DisplaySnippet for Error {
 impl ErrorVariant {
     pub fn title(&self) -> &str {
         match self {
-            Self::UnexpectedCharacter{ .. } => "Unexpected character",
+            Self::UnexpectedCharacter { .. } => "Unexpected character",
             Self::UnexpectedEndOfInput => "Unexpected end of input",
-            Self::ParseError{ .. } => "Parse Error",
-            Self::Custom{ .. } => "Custom Error",
+            Self::ParseError { .. } => "Parse Error",
+            Self::Custom { .. } => "Custom Error",
         }
     }
 
     pub fn code(&self) -> &str {
         match self {
-            Self::UnexpectedCharacter{ .. } => "E001",
+            Self::UnexpectedCharacter { .. } => "E001",
             Self::UnexpectedEndOfInput => "E002",
-            Self::ParseError{ .. } => "E003",
-            Self::Custom{ .. } => "E004",
+            Self::ParseError { .. } => "E003",
+            Self::Custom { .. } => "E004",
         }
     }
 }
-
 
 impl Error {
     pub fn new(variant: ErrorVariant, location: InputLocation) -> Self {

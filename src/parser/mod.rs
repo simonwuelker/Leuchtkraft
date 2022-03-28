@@ -1,4 +1,3 @@
 pub mod lexer;
+mod position;
 mod token;
-mod scanner;
-mod span;

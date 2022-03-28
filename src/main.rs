@@ -1,18 +1,18 @@
 #![doc = include_str!("../README.md")]
 
 mod cli;
+mod debug;
 mod interpreter;
 mod logic;
-mod debug;
 mod parser;
 mod util;
 
+use anyhow::{Context, Result};
+use debug::panic;
 use interpreter::Interpreter;
 use std::fs;
 use std::io::Write;
 use structopt::StructOpt;
-use debug::panic;
-use anyhow::{Context, Result};
 
 fn main() -> Result<()> {
     panic::init();
@@ -21,17 +21,17 @@ fn main() -> Result<()> {
 
     let mut i = Interpreter::new();
     if let Some(filename) = options.file_name {
-        let file = fs::read_to_string(&filename)
-            .with_context(|| format!("Cannot open {:?}", filename))?;
+        let file =
+            fs::read_to_string(&filename).with_context(|| format!("Cannot open {:?}", filename))?;
 
         for line in file.lines() {
             match i.execute(line) {
                 Ok(response) => {
                     if let Some(text) = response.text() {
                         println!("=> {}", text);
-                    } 
+                    }
                     response.warnings().iter().for_each(util::print_snippet);
-                },
+                }
                 Err(err) => util::print_snippet(err),
             }
         }
@@ -57,7 +57,8 @@ fn run_repl(mut i: Interpreter) -> Result<()> {
         print!("> ");
         std::io::stdout().flush().context("Cannot flush stdout")?;
         std::io::stdin()
-            .read_line(&mut buffer).context("Cannot read from stdin")?;
+            .read_line(&mut buffer)
+            .context("Cannot read from stdin")?;
 
         buffer.pop(); // last char is always a newline
 
@@ -67,9 +68,9 @@ fn run_repl(mut i: Interpreter) -> Result<()> {
                 Ok(response) => {
                     if let Some(text) = response.text() {
                         println!("=> {}", text);
-                    } 
+                    }
                     response.warnings().iter().for_each(util::print_snippet);
-                },
+                }
                 Err(err) => util::print_snippet(err),
             },
         }

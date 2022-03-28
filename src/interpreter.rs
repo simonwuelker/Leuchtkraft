@@ -45,7 +45,7 @@ impl Interpreter {
 
         // Parse the line
         let mut lexer = Lexer::new(line);
-        let tokens = lexer.tokenize()?;
+        // let tokens = lexer.tokenize()?;
 
         // match tokens.get().type() {
         //     TokenType::Indent
@@ -109,7 +109,7 @@ impl Response {
         }
     }
 
-    pub fn warnings<'a>(&'a self) -> &'a[Warning] {
+    pub fn warnings<'a>(&'a self) -> &'a [Warning] {
         &self.warnings
     }
 

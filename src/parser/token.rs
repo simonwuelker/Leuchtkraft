@@ -24,13 +24,12 @@ pub enum Token<'a> {
     /// A comma (`,`)
     Comma,
 
-    /// a reserved Leuchtkraft [Keyword]
-    Keyword(Keyword),
-}
-
-/// Reserved keywords
-pub enum Keyword {
+    /// Forall keyword
     Forall,
+
+    /// True primitive
     True,
-    False
+
+    /// False primitive
+    False,
 }

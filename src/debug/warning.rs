@@ -1,5 +1,5 @@
-use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
 use super::annotation::{DisplaySnippet, InputLocation};
+use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
 
 #[derive(Debug)]
 pub struct Warning {
@@ -32,7 +32,9 @@ impl DisplaySnippet for &Warning {
 impl WarningVariant {
     pub fn title(&self) -> &str {
         match self {
-            WarningVariant::DuplicateScopedVariable(_) => "Scoped variable was declared multiple times",
+            WarningVariant::DuplicateScopedVariable(_) => {
+                "Scoped variable was declared multiple times"
+            }
             RedundantTrue => "'true' in this position does nothing",
         }
     }
