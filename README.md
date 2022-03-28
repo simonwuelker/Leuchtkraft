@@ -25,7 +25,8 @@ In order or priority:
 - [ ] Logic resolver
 - [ ] Great build warnings/errors
 - [ ] WASM app for testing
-- [ ] REPL
+- [x] REPL
+- [ ] Var-level unknowns (`canfly(X?)`)
 - [ ] Compiler and (if we feel really fancy) JIT
 
 

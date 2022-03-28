@@ -1,6 +1,4 @@
 use crate::logic::Ident;
-use crate::parser::Rule;
-use pest::iterators::Pair;
 
 #[derive(Debug, Clone, PartialEq)]
 /// The smallest (atomic) operand in a logical formula.
@@ -22,33 +20,6 @@ pub struct Predicate {
 pub enum Var {
     Fixed(Ident),
     Anonymous(Ident),
-}
-
-impl Atom {
-    pub fn from_pair(pair: Pair<Rule>) -> Self {
-        assert_eq!(
-            std::mem::discriminant(&Rule::Atom),
-            std::mem::discriminant(&pair.as_rule())
-        );
-
-        let child = pair.into_inner().next().unwrap();
-        match child.as_rule() {
-            Rule::Predicate => {
-                let mut idents = child.into_inner().map(|p| p.as_str().to_string());
-                Self::Predicate(Predicate {
-                    name: idents.next().unwrap(),
-                    args: idents.map(|s| Var::Fixed(s)).collect(),
-                })
-            }
-            Rule::Boolean => match child.as_str() {
-                "true" => Self::Boolean(true),
-                "false" => Self::Boolean(false),
-                _ => unreachable!(),
-            },
-            Rule::Unknown => Self::Unknown(child.as_str().to_string()),
-            _ => unreachable!("Converting non-atom value to atom"),
-        }
-    }
 }
 
 impl Predicate {
