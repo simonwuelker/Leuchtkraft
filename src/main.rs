@@ -25,7 +25,7 @@ fn main() -> Result<()> {
         let file =
             fs::read_to_string(&filename).with_context(|| format!("Cannot open {:?}", filename))?;
 
-        run_repl(&mut i, file.lines());
+        run_repl(&mut i, file.lines().map(|l| l.to_owned()));
 
         if options.interactive {
             run_repl(&mut i, Repl::new());

@@ -1,7 +1,10 @@
 use super::position::Positioned;
-use super::token::Token;
+use super::token::{Token, TokenType};
 use super::tokenizer::Tokenizer;
 use crate::debug::error::Error;
+use crate::debug::warning::Warning;
+
+type ParseResult<T> = Result<(T, Vec<Warning>), Error>;
 
 /// The characters used for indenting a line
 pub enum Indentation {
@@ -16,11 +19,14 @@ struct Predicate;
 type Rule = Vec<Vec<Predicate>>;
 
 pub enum Line<'a> {
+    /// Forall keyword with list of freed identifiers
     Forall(Vec<&'a str>),
     /// (indentation level, rule)
-    IndentedRule(usize, Rule),
+    IndentedRule(Rule),
     /// Unindented (free) rule
     Rule(Rule),
+    /// Empty Line
+    Empty,
 }
 
 /// A data structure that creates a program from tokens
@@ -38,7 +44,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Try to parse the internal buffer as a line
-    pub fn line(&self) -> Option<Result<Positioned<Token<'a>>, Error>> {
+    pub fn line(&self) -> ParseResult<Positioned<Token<'a>>> {
         // Look at how nice PEG grammars look!
         if let Some(stmt) = self.forall(0) {
         } else if let Some(stmt) = self.indented_rule(0) {
@@ -51,22 +57,22 @@ impl<'a> Parser<'a> {
     /// Expect the next token to be a specific token type.
     fn expect(
         &self,
-        token: Token,
+        token_type: TokenType,
         position: &mut usize,
     ) -> Result<Positioned<Token>, Result<Positioned<Token>, Error>> {
         Ok(self.tokenizer.read_next_token(position).unwrap().unwrap())
     }
 
-    fn forall(&self, mut pos: usize) -> Option<Result<Positioned<Vec<&'a str>>, Error>> {
-        self.expect(Token::Forall, &mut pos);
+    fn forall(&self, mut pos: usize) -> ParseResult<Positioned<Vec<&'a str>>> {
+        self.expect(TokenType::Forall, &mut pos);
         unimplemented!()
     }
 
-    fn indented_rule(&self, mut pos: usize) -> Option<Result<Positioned<Vec<&'a str>>, Error>> {
+    fn indented_rule(&self, mut pos: usize) -> ParseResult<Positioned<Vec<&'a str>>> {
         unimplemented!()
     }
 
-    fn rule(&self, mut pos: usize) -> Option<Result<Positioned<Vec<&'a str>>, Error>> {
+    fn rule(&self, mut pos: usize) -> ParseResult<Positioned<Vec<&'a str>>> {
         unimplemented!()
     }
 

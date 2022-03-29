@@ -25,24 +25,26 @@ impl<'a> Tokenizer<'a> {
                     let ident = self
                         .consume_while(pos, |c: &char| c.is_alphanumeric() || c == &'_')
                         .unwrap();
-                    let token = match *ident.as_inner() {
-                        "forall" => ident.map(Token::Forall),
-                        "true" => ident.map(Token::True),
-                        "false" => ident.map(Token::False),
-                        ident_str => ident.map(Token::Ident(ident_str)),
+                    let matched_str = *ident.as_inner();
+                    let token_type = match matched_str {
+                        "forall" => TokenType::Forall,
+                        "true" => TokenType::True,
+                        "false" => TokenType::False,
+                        _ => TokenType::Ident,
                     };
-                    Some(Ok(token))
+
+                    Some(Ok(Token::new(matched_str, token_type)))
                 }
                 '=' => match self.take(pos, "=>") {
-                    Ok(read) => Some(Ok(read.map(Token::Implication))),
+                    Ok(read) => Some(Ok(read.map(Token::new(read.as_inner(), Token::Implication)))),
                     Err(e) => unimplemented!(),
                 },
-                ' ' => self.consume(pos).map(|o| Ok(o.map(Token::Space))),
-                '\t' => self.consume(pos).map(|o| Ok(o.map(Token::Tab))),
-                '?' => self.consume(pos).map(|o| Ok(o.map(Token::Questionmark))),
-                ',' => self.consume(pos).map(|o| Ok(o.map(Token::Comma))),
-                '(' => self.consume(pos).map(|o| Ok(o.map(Token::OpeningParen))),
-                ')' => self.consume(pos).map(|o| Ok(o.map(Token::ClosingParen))),
+                ' ' => self.consume(pos).map(|o| Ok(o.map(Token::new(o.as_inner(), TokenType::Space)))),
+                '\t' => self.consume(pos).map(|o| Ok(o.map(Token::new(o.as_inner(), TokenType::Tab)))),
+                '?' => self.consume(pos).map(|o| Ok(o.map(Token::new(o.as_inner(), TokenType::Questionmark)))),
+                ',' => self.consume(pos).map(|o| Ok(o.map(Token::new(o.as_inner(), TokenType::Comma)))),
+                '(' => self.consume(pos).map(|o| Ok(o.map(Token::new(o.as_inner(), TokenType::OpeningParen)))),
+                ')' => self.consume(pos).map(|o| Ok(o.map(Token::new(o.as_inner(), TokenType::ClosingParen)))),
                 x => Some(Err(Error::new(
                     ErrorVariant::UnexpectedCharacter {
                         found: x,

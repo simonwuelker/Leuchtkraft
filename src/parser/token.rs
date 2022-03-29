@@ -1,14 +1,17 @@
 #[derive(Debug)]
 /// The smallest syntactical units in the Leuchtkraft language
-pub enum Token<'a> {
-    /// Indentation level (aka any number of spaces at the beginning of the line)
-    /// Since Leuchtkraft scripts only ever have one level one indentation,
-    /// parsing indent levels is really simple
-    Indent,
+pub struct Token<'a> {
+    /// The matched characters of the input string
+    matched: &'a str,
+    /// the type of token
+    token_type: TokenType,
+}
 
+#[derive(Debug)]
+pub enum TokenType {
     /// An identifier that consists of alphanumeric characters and underscores,
     /// but the first character cannot be anumber
-    Ident(&'a str),
+    Ident,
 
     /// An opening parenthesis (`(`)
     OpeningParen,
@@ -48,4 +51,17 @@ pub enum Token<'a> {
 
     /// Tabs (used for indentation)
     Tab,
+}
+
+impl<'a> Token<'a> {
+    pub fn new(matched: &'a str, token_type: TokenType) -> Self {
+        Self {
+            matched: matched,
+            token_type: token_type,
+        }
+    }
+
+    pub fn type(&self) -> TokenType {
+        self.token_type
+    }
 }
