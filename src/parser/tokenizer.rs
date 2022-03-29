@@ -2,22 +2,24 @@ use super::position::{Position, Positioned};
 use super::token::Token;
 use crate::debug::annotation::InputLocation;
 use crate::debug::error::{Error, ErrorVariant};
-use std::collections::VecDeque;
-use std::iter::{Enumerate, Peekable};
 
-/// A parser for right-linear (not sure if thats the right word) grammars
-pub struct Lexer<'a> {
+/// A tokenizer that converts an input stream of bytes into an output
+/// stream of tokens, received via the [read_next_token] function.
+pub struct Tokenizer<'a> {
     buffer: &'a str,
 }
 
-impl<'a> Lexer<'a> {
+impl<'a> Tokenizer<'a> {
     /// Create a new Lexer from an input buffer
     pub fn new(buffer: &'a str) -> Self {
         Self { buffer: buffer }
     }
 
-    fn read_next_token(&'a self, pos: &mut usize) -> Result<Option<Positioned<Token<'a>>>, Error> {
-        let token = match self.peek(pos) {
+    pub fn read_next_token(
+        &'a self,
+        pos: &mut usize,
+    ) -> Option<Result<Positioned<Token<'a>>, Error>> {
+        match self.peek(pos) {
             Some(c) => match c {
                 'a'..='z' | 'A'..='Z' | '_' => {
                     let ident = self
@@ -29,46 +31,32 @@ impl<'a> Lexer<'a> {
                         "false" => ident.map(Token::False),
                         ident_str => ident.map(Token::Ident(ident_str)),
                     };
-                    Some(token)
+                    Some(Ok(token))
                 }
-                ' ' => self.consume(pos).map(|o| o.map(Token::Indent)),
                 '=' => match self.take(pos, "=>") {
-                    Ok(read) => Some(read.map(Token::Implication)),
+                    Ok(read) => Some(Ok(read.map(Token::Implication))),
                     Err(e) => unimplemented!(),
                 },
-                '(' => self.consume(pos).map(|o| o.map(Token::OpeningParen)),
-                ')' => self.consume(pos).map(|o| o.map(Token::ClosingParen)),
-                x => {
-                    return Err(Error::new(
-                        ErrorVariant::UnexpectedCharacter {
-                            found: x,
-                            expected: None,
-                        },
-                        InputLocation::Pos(*pos),
-                    ));
-                }
+                ' ' => self.consume(pos).map(|o| Ok(o.map(Token::Space))),
+                '\t' => self.consume(pos).map(|o| Ok(o.map(Token::Tab))),
+                '?' => self.consume(pos).map(|o| Ok(o.map(Token::Questionmark))),
+                ',' => self.consume(pos).map(|o| Ok(o.map(Token::Comma))),
+                '(' => self.consume(pos).map(|o| Ok(o.map(Token::OpeningParen))),
+                ')' => self.consume(pos).map(|o| Ok(o.map(Token::ClosingParen))),
+                x => Some(Err(Error::new(
+                    ErrorVariant::UnexpectedCharacter {
+                        found: x,
+                        expected: None,
+                    },
+                    InputLocation::Pos(*pos),
+                ))),
             },
             None => None,
-        };
-
-        // Following a token, there can be an arbitrary number of whitespaces
-        self.consume_while(pos, |c: &char| c.is_whitespace());
-
-        Ok(token)
-    }
-
-    pub fn tokenize(&'a self) -> Result<Vec<Positioned<Token<'a>>>, Error> {
-        let mut pos = 0;
-        let mut tokens = vec![];
-        while let Some(token) = self.read_next_token(&mut pos)? {
-            tokens.push(token)
         }
-
-        Ok(tokens)
     }
 
     /// Return a single character and advance the reader position
-    pub fn consume(&'a self, pos: &mut usize) -> Option<Positioned<char>> {
+    fn consume(&'a self, pos: &mut usize) -> Option<Positioned<char>> {
         let c = self.buffer.chars().nth(*pos)?;
         let res = Positioned::new(c, Position::Pos(*pos));
         *pos += 1;
@@ -79,7 +67,7 @@ impl<'a> Lexer<'a> {
     ///
     /// # Panic
     /// Panics if the end position is outside the buffer range
-    pub fn consume_exact(&'a self, pos: &mut usize, n: usize) -> Positioned<&'a str> {
+    fn consume_exact(&'a self, pos: &mut usize, n: usize) -> Positioned<&'a str> {
         let end = *pos + n;
         let res = Positioned::new(&self.buffer[*pos..end], Position::Span(*pos, end));
         *pos += n;
@@ -88,11 +76,7 @@ impl<'a> Lexer<'a> {
 
     /// Read as long as the read character satisfies the given predicate
     /// and advance the reader position accordingly
-    pub fn consume_while<P: 'static>(
-        &self,
-        pos: &mut usize,
-        predicate: P,
-    ) -> Option<Positioned<&str>>
+    fn consume_while<P: 'static>(&self, pos: &mut usize, predicate: P) -> Option<Positioned<&str>>
     where
         P: FnMut(&char) -> bool,
     {
@@ -105,16 +89,16 @@ impl<'a> Lexer<'a> {
     }
 
     /// Return a single character without advancing the reader position
-    pub fn peek(&self, pos: &usize) -> Option<char> {
+    fn peek(&self, pos: &usize) -> Option<char> {
         self.buffer.chars().nth(*pos)
     }
 
     /// Read exactly n characters without advancing the reader position
-    pub fn peek_exact(&self, pos: usize, n: usize) -> &str {
+    fn peek_exact(&self, pos: usize, n: usize) -> &str {
         &self.buffer[pos..pos + n]
     }
 
-    pub fn take(&self, pos: &mut usize, expected: &str) -> Result<Positioned<()>, Error> {
+    fn take(&self, pos: &mut usize, expected: &str) -> Result<Positioned<()>, Error> {
         let initial_pos = *pos;
         for expected_char in expected.chars() {
             let read = self.consume(pos);

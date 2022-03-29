@@ -22,6 +22,7 @@ Z? => canfly(jane) => Z? // True (jane is a healthy bird)
 
 ## Road Map
 In order or priority: 
+- [ ] Custom zero-clone parser
 - [ ] Logic resolver
 - [ ] Great build warnings/errors
 - [ ] WASM app for testing

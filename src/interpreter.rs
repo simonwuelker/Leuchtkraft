@@ -2,7 +2,7 @@ use crate::debug::error::{Error, ErrorVariant};
 use crate::debug::warning::Warning;
 use crate::logic::logic_engine::LogicEngine;
 use crate::logic::{atom::Atom, clause::Clause};
-use crate::parser::lexer::Lexer;
+// use crate::parser::tokenizer::Tokenizer;
 
 type Ident = String;
 
@@ -44,8 +44,12 @@ impl Interpreter {
         println!("Executing {}", line);
 
         // Parse the line
-        let mut lexer = Lexer::new(line);
+        // let mut tokenizer = Tokenizer::new(line);
         // let tokens = lexer.tokenize()?;
+
+        // for token in tokens {
+        //     println!("{:?}", token.as_inner());
+        // }
 
         // match tokens.get().type() {
         //     TokenType::Indent

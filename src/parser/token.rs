@@ -1,3 +1,4 @@
+#[derive(Debug)]
 /// The smallest syntactical units in the Leuchtkraft language
 pub enum Token<'a> {
     /// Indentation level (aka any number of spaces at the beginning of the line)
@@ -19,7 +20,7 @@ pub enum Token<'a> {
     Implication,
 
     /// A questionmark (`?`)
-    QuestionMark,
+    Questionmark,
 
     /// A comma (`,`)
     Comma,
@@ -32,4 +33,19 @@ pub enum Token<'a> {
 
     /// False primitive
     False,
+
+    /// Singleline comment (`//`)
+    SinglelineComment,
+
+    /// Multiline comment open (`/*`)
+    MultilineCommentOpen,
+
+    /// Multiline comment close (`*/`)
+    MultilineCommentClose,
+
+    /// Spaces (used for indentation and seperating tokens)
+    Space,
+
+    /// Tabs (used for indentation)
+    Tab,
 }
