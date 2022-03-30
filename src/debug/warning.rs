@@ -1,10 +1,11 @@
-use super::annotation::{DisplaySnippet, InputLocation};
+use super::annotation::DisplaySnippet;
+use crate::parser::position::Position;
 use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
 
 #[derive(Debug)]
 pub struct Warning {
     pub variant: WarningVariant,
-    pub location: InputLocation,
+    pub location: Position,
 }
 
 #[derive(Debug)]

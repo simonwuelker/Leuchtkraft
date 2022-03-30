@@ -1,4 +1,5 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
+/// Describes either a single position in the code or a span
 pub enum Position {
     Pos(usize),
     Span(usize, usize),

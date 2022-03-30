@@ -38,15 +38,13 @@ pub fn run_repl<I>(i: &mut Interpreter, source: I)
 where
     I: Iterator<Item = String>,
 {
-    source.for_each(|line| 
-        match i.execute(&line) {
-            Ok(response) => {
-                if let Some(text) = response.text() {
-                    println!("=> {}", text);
-                }
-                response.warnings().iter().for_each(util::print_snippet);
+    source.for_each(|line| match i.execute(&line) {
+        Ok(response) => {
+            if let Some(text) = response.text() {
+                println!("=> {}", text);
             }
-            Err(err) => util::print_snippet(err),
+            response.warnings().iter().for_each(util::print_snippet);
         }
-    );
+        Err(err) => util::print_snippet(err),
+    });
 }

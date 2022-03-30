@@ -1,10 +1,10 @@
-use super::position::Positioned;
-use super::token::{Token, TokenType};
+use super::error::{ParseError, ParseErrorVariant};
+use super::position::{Position, Positioned};
+use super::token::Token;
 use super::tokenizer::Tokenizer;
-use crate::debug::error::Error;
 use crate::debug::warning::Warning;
 
-type ParseResult<T> = Result<(T, Vec<Warning>), Error>;
+type ParseResult<T> = Result<(T, Vec<Warning>), ParseError>;
 
 /// The characters used for indenting a line
 pub enum Indentation {
@@ -44,39 +44,60 @@ impl<'a> Parser<'a> {
     }
 
     /// Try to parse the internal buffer as a line
-    pub fn line(&self) -> ParseResult<Positioned<Token<'a>>> {
+    pub fn line(&self) -> ParseResult<Positioned<Token>> {
         // Look at how nice PEG grammars look!
-        if let Some(stmt) = self.forall(0) {
-        } else if let Some(stmt) = self.indented_rule(0) {
-        } else if let Some(stmt) = self.rule(0) {
-        } else if let Some(stmt) = self.empty(0) {
+        if let Ok(stmt) = self.forall(0) {
+        } else if let Ok(stmt) = self.rule(0) {
+        } else if self.empty(0).is_ok() {
         }
         unimplemented!()
     }
 
     /// Expect the next token to be a specific token type.
+    /// Return Some(token) if the token matched
+    /// Return Err(Ok(token)) if a different token was read
+    /// Return Err(Err()) if no token could be read
     fn expect(
         &self,
-        token_type: TokenType,
         position: &mut usize,
-    ) -> Result<Positioned<Token>, Result<Positioned<Token>, Error>> {
-        Ok(self.tokenizer.read_next_token(position).unwrap().unwrap())
+        expected: Token,
+    ) -> Result<Positioned<Token>, ParseError> {
+        match self.tokenizer.try_read(position, expected) {
+            Some(positioned) => Ok(positioned),
+            None => Err(ParseError::new(
+                Position::Pos(*position),
+                ParseErrorVariant::UnexpectedToken { expected: expected },
+            )),
+        }
     }
 
-    fn forall(&self, mut pos: usize) -> ParseResult<Positioned<Vec<&'a str>>> {
-        self.expect(TokenType::Forall, &mut pos);
+    /// Skip any constructs that can always appear inbetween tokens
+    /// like /* comments */ or whitespaces
+    fn skip_filler(&self, position: &mut usize) {}
+
+    /// Parse a line containing a forall statement, returning
+    /// the vec of freed identifiers
+    fn forall(&self, mut pos: usize) -> ParseResult<Vec<Positioned<Token>>> {
+        self.expect(&mut pos, Token::Forall)?;
+
+        let mut idents = vec![];
+        idents.push(self.expect(&mut pos, Token::Ident)?);
+
+        while self.expect(&mut pos, Token::Comma).is_ok() {
+            idents.push(self.expect(&mut pos, Token::Ident)?);
+        }
+        self.expect(&mut pos, Token::End)?;
+        Ok((idents, vec![]))
+    }
+
+    /// Return a boolean indicating whether or not the line was indented
+    /// and the rule itself
+    fn rule(&self, mut pos: usize) -> ParseResult<(Positioned<Vec<&'a str>>, bool)> {
         unimplemented!()
     }
 
-    fn indented_rule(&self, mut pos: usize) -> ParseResult<Positioned<Vec<&'a str>>> {
-        unimplemented!()
-    }
-
-    fn rule(&self, mut pos: usize) -> ParseResult<Positioned<Vec<&'a str>>> {
-        unimplemented!()
-    }
-
-    fn empty(&self, mut pos: usize) -> Option<usize> {
-        unimplemented!()
+    fn empty(&self, mut pos: usize) -> Result<(), ParseError> {
+        self.expect(&mut pos, Token::End)?;
+        Ok(())
     }
 }

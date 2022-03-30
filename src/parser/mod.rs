@@ -1,4 +1,5 @@
+pub mod error;
 pub mod parser;
-mod position;
+pub mod position;
 mod token;
 mod tokenizer;

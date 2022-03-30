@@ -1,17 +1,15 @@
-#[derive(Debug)]
-/// The smallest syntactical units in the Leuchtkraft language
-pub struct Token<'a> {
-    /// The matched characters of the input string
-    matched: &'a str,
-    /// the type of token
-    token_type: TokenType,
-}
-
-#[derive(Debug)]
-pub enum TokenType {
+#[derive(Debug, PartialEq, Clone, Copy)]
+/// Atomic syntactical units
+pub enum Token {
     /// An identifier that consists of alphanumeric characters and underscores,
     /// but the first character cannot be anumber
     Ident,
+
+    /// Indentation token
+    /// Since Leuchtkraft only supports one level of indentation,
+    /// ANY number of spaces or tabs (or mixtures of both) at the beginning of a line
+    /// will be interpreted as an indentation
+    Indent,
 
     /// An opening parenthesis (`(`)
     OpeningParen,
@@ -51,17 +49,10 @@ pub enum TokenType {
 
     /// Tabs (used for indentation)
     Tab,
-}
 
-impl<'a> Token<'a> {
-    pub fn new(matched: &'a str, token_type: TokenType) -> Self {
-        Self {
-            matched: matched,
-            token_type: token_type,
-        }
-    }
+    /// A character that cannot be directly identified as a token
+    Character,
 
-    pub fn type(&self) -> TokenType {
-        self.token_type
-    }
+    /// A token marking the end of the input stream
+    End,
 }

@@ -1,8 +1,8 @@
-use crate::debug::error::{Error, ErrorVariant};
 use crate::debug::warning::Warning;
 use crate::logic::logic_engine::LogicEngine;
 use crate::logic::{atom::Atom, clause::Clause};
-// use crate::parser::tokenizer::Tokenizer;
+use crate::parser::error::ParseError;
+use crate::parser::parser::Parser;
 
 type Ident = String;
 
@@ -40,12 +40,13 @@ impl Interpreter {
         }
     }
 
-    pub fn execute(&mut self, line: &str) -> Result<Response, Error> {
+    pub fn execute(&mut self, line: &str) -> Result<Response, ParseError> {
         println!("Executing {}", line);
+        let expected_indentation = Some(0);
 
         // Parse the line
-        // let mut tokenizer = Tokenizer::new(line);
-        // let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(line);
+        parser.line();
 
         // for token in tokens {
         //     println!("{:?}", token.as_inner());
