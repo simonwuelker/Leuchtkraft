@@ -1,5 +1,5 @@
 pub mod error;
 pub mod parser;
-pub mod position;
+pub mod span;
 mod token;
 mod tokenizer;

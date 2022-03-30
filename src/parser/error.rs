@@ -1,12 +1,12 @@
-use super::position::Position;
+use super::span::Span;
 use super::token::Token;
 use crate::debug::annotation::DisplaySnippet;
 use crate::debug::error::ErrorVariant;
-use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
+use annotate_snippets::snippet::{Annotation, AnnotationType, SourceAnnotation};
 
 /// Errors during parsing occupy error codes 001-100
 pub struct ParseError {
-    position: Position,
+    position: Span,
     variant: ParseErrorVariant,
 }
 
@@ -41,9 +41,9 @@ impl ErrorVariant for ParseErrorVariant {
 }
 
 impl ParseError {
-    pub fn new(position: Position, variant: ParseErrorVariant) -> Self {
+    pub fn new(span: Span, variant: ParseErrorVariant) -> Self {
         Self {
-            position: position,
+            position: span,
             variant: variant,
         }
     }
@@ -57,10 +57,12 @@ impl DisplaySnippet for ParseError {
             annotation_type: AnnotationType::Error,
         }
     }
+
     fn footer(&self) -> Vec<Annotation> {
         vec![]
     }
-    fn slice(&self) -> Vec<Slice> {
+
+    fn source_annotations(&self) -> Vec<SourceAnnotation> {
         vec![]
     }
 }

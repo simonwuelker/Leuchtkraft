@@ -34,17 +34,23 @@ impl Iterator for Repl {
 }
 
 /// Start a interactive Leuchtkraft shell
-pub fn run_repl<I>(i: &mut Interpreter, source: I)
+pub fn run_repl<I>(i: &mut Interpreter, source: I, source_name: Option<&str>)
 where
     I: Iterator<Item = String>,
 {
-    source.for_each(|line| match i.execute(&line) {
-        Ok(response) => {
-            if let Some(text) = response.text() {
-                println!("=> {}", text);
+    source.enumerate().for_each(|(ix, line)| {
+        let lineno = ix + 1;
+        match i.execute(&line) {
+            Ok(response) => {
+                if let Some(text) = response.text() {
+                    println!("=> {}", text);
+                }
+                response
+                    .warnings()
+                    .iter()
+                    .for_each(|w| util::print_snippet(w, &line, lineno, source_name));
             }
-            response.warnings().iter().for_each(util::print_snippet);
+            Err(err) => util::print_snippet(err, &line, lineno, source_name),
         }
-        Err(err) => util::print_snippet(err),
     });
 }

@@ -3,8 +3,10 @@ use crate::logic::logic_engine::LogicEngine;
 use crate::logic::{atom::Atom, clause::Clause};
 use crate::parser::error::ParseError;
 use crate::parser::parser::Parser;
+use crate::util::print_snippet;
 
-type Ident = String;
+/// Idents are hashed variable names
+pub type Ident = u64;
 
 pub struct Response {
     text: Option<String>,
@@ -41,68 +43,18 @@ impl Interpreter {
     }
 
     pub fn execute(&mut self, line: &str) -> Result<Response, ParseError> {
-        println!("Executing {}", line);
         let expected_indentation = Some(0);
+        let mut warnings = vec![];
 
         // Parse the line
         let mut parser = Parser::new(line);
-        parser.line();
+        {
+            parser.line(&mut warnings)?;
+        }
 
-        // for token in tokens {
-        //     println!("{:?}", token.as_inner());
-        // }
-
-        // match tokens.get().type() {
-        //     TokenType::Indent
-        // }
-
-        // last child is always EOI
-        // for child in pair.clone().into_inner() {
-        //     match child.as_rule() {
-        //         Rule::Rule => {
-        //             self.state.inside_scopeblock = false;
-
-        //             let mut blocks = vec![vec![]];
-
-        //             child
-        //                 .into_inner()
-        //                 .enumerate()
-        //                 .for_each(|(ix, node)| match node.as_rule() {
-        //                     Rule::Implication => blocks.push(vec![]),
-        //                     Rule::Atom => {
-        //                         blocks
-        //                             .last_mut()
-        //                             .unwrap()
-        //                             .push(Atom::from_pair(node.clone()));
-        //                     }
-        //                     _ => unreachable!(),
-        //                 });
-        //             let clause = Clause::new(blocks);
-        //             if clause.is_question() {
-        //                 self.logic.resolve(clause);
-        //             } else {
-        //                 self.logic.add_clause(clause);
-        //             }
-        //         }
-        //         Rule::Scopeblock => {
-        //             self.state.inside_scopeblock = true;
-
-        //             for anon_var in child.into_inner() {
-        //                 let ident = anon_var.as_str().to_string();
-        //                 if self.state.anon_vars.contains(&ident) {
-        //                     return Err(Error::new(
-        //                         ErrorVariant::ParseError("Duplicate scoped variable".to_string()),
-        //                         anon_var.as_span().into(),
-        //                     ));
-        //                 } else {
-        //                     self.state.anon_vars.push(anon_var.as_str().to_string());
-        //                 }
-        //             }
-        //         }
-        //         _ => {}
-        //     }
-        // }
-        Ok(Response::empty())
+        let mut response = Response::empty();
+        response.set_warnings(warnings);
+        Ok(response)
     }
 }
 

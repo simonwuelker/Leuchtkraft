@@ -1,4 +1,4 @@
-use super::position::{Position, Positioned};
+use super::span::{Span, Spanned};
 use super::token::Token;
 
 /// A tokenizer that converts an input stream of bytes into an output
@@ -13,7 +13,7 @@ impl<'a> Tokenizer<'a> {
         Self { buffer: buffer }
     }
 
-    pub fn try_read(&'a self, pos: &mut usize, token: Token) -> Option<Positioned<Token>> {
+    pub fn try_read(&'a self, pos: &mut usize, token: Token) -> Option<Spanned<Token>> {
         match token {
             Token::Ident => self
                 .consume_while(pos, |c: &char| c.is_alphanumeric() || c == &'_')
@@ -45,7 +45,7 @@ impl<'a> Tokenizer<'a> {
                 .map(|o| o.map(Token::Ident)),
             Token::End => {
                 if *pos == self.buffer.len() {
-                    Some(Positioned::new(Token::End, Position::Pos(*pos)))
+                    Some(Spanned::new(Token::End, Span::position(*pos)))
                 } else {
                     None
                 }
@@ -54,14 +54,15 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Return a single character and advance the reader position
-    fn consume(&'a self, pos: &mut usize) -> Option<Positioned<char>> {
+    fn consume(&'a self, pos: &mut usize) -> Option<Spanned<char>> {
         let c = self.buffer.chars().nth(*pos)?;
-        let res = Positioned::new(c, Position::Pos(*pos));
+        let res = Spanned::new(c, Span::position(*pos));
         *pos += 1;
         Some(res)
     }
 
-    fn consume_if<P: 'static>(&'a self, pos: &mut usize, predicate: P) -> Option<Positioned<char>>
+    /// Consume if the next character matches the given predicate.
+    fn consume_if<P: 'static>(&'a self, pos: &mut usize, predicate: P) -> Option<Spanned<char>>
     where
         P: FnOnce(&char) -> bool,
     {
@@ -70,10 +71,8 @@ impl<'a> Tokenizer<'a> {
         match c {
             Some(character) => {
                 if predicate(&character) {
-                    Some(Positioned::new(
-                        character,
-                        Position::Span(initial_pos, *pos),
-                    ))
+                    *pos += 1;
+                    Some(Spanned::new(character, Span(initial_pos, *pos)))
                 } else {
                     *pos = initial_pos; // revert reader
                     None
@@ -87,12 +86,12 @@ impl<'a> Tokenizer<'a> {
     ///
     /// # Panic
     /// Panics if the end position is outside the buffer range
-    fn consume_exact(&'a self, pos: &mut usize, n: usize) -> Option<Positioned<&'a str>> {
+    fn consume_exact(&'a self, pos: &mut usize, n: usize) -> Option<Spanned<&'a str>> {
         let end = *pos + n;
         if self.buffer.len() < n {
             None
         } else {
-            let res = Positioned::new(&self.buffer[*pos..end], Position::Span(*pos, end));
+            let res = Spanned::new(&self.buffer[*pos..end], Span(*pos, end));
             *pos += n;
             Some(res)
         }
@@ -100,7 +99,7 @@ impl<'a> Tokenizer<'a> {
 
     /// Read as long as the read character satisfies the given predicate
     /// and advance the reader position accordingly
-    fn consume_while<P: 'static>(&self, pos: &mut usize, predicate: P) -> Option<Positioned<&str>>
+    fn consume_while<P: 'static>(&self, pos: &mut usize, predicate: P) -> Option<Spanned<&str>>
     where
         P: FnMut(&char) -> bool,
     {
@@ -122,7 +121,7 @@ impl<'a> Tokenizer<'a> {
         &self.buffer[pos..pos + n]
     }
 
-    fn take(&self, pos: &mut usize, expected: &str) -> Option<Positioned<()>> {
+    fn take(&self, pos: &mut usize, expected: &str) -> Option<Spanned<()>> {
         let initial_pos = *pos;
 
         for expected_char in expected.chars() {
@@ -138,6 +137,6 @@ impl<'a> Tokenizer<'a> {
                 None => return None,
             }
         }
-        Some(Positioned::new((), Position::Span(initial_pos, *pos)))
+        Some(Spanned::new((), Span(initial_pos, *pos)))
     }
 }
