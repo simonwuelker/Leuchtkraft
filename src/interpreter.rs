@@ -1,9 +1,8 @@
 use crate::debug::warning::Warning;
 use crate::logic::logic_engine::LogicEngine;
 use crate::logic::{atom::Atom, clause::Clause};
-use crate::parser::error::ParseError;
+use crate::parser::error::TokenNotFound;
 use crate::parser::parser::Parser;
-use crate::util::print_snippet;
 
 /// Idents are hashed variable names
 pub type Ident = u64;
@@ -42,7 +41,7 @@ impl Interpreter {
         }
     }
 
-    pub fn execute(&mut self, line: &str) -> Result<Response, ParseError> {
+    pub fn execute(&mut self, line: &str) -> Result<Response, TokenNotFound> {
         let expected_indentation = Some(0);
         let mut warnings = vec![];
 

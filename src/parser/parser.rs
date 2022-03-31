@@ -1,4 +1,4 @@
-use super::error::{ParseError, ParseErrorVariant};
+use super::error::TokenNotFound;
 use super::span::{Span, Spanned};
 use super::token::Token;
 use super::tokenizer::Tokenizer;
@@ -46,40 +46,56 @@ impl<'a> Parser<'a> {
     }
 
     /// Try to parse the internal buffer as a line
-    pub fn line(&self, warnings: &mut Vec<Warning>) -> Result<Line, ParseError> {
+    pub fn line(&self, warnings: &mut Vec<Warning>) -> Result<Line, TokenNotFound> {
         // Look at how nice PEG grammars look!
-        let forall = self.forall(0, warnings)?;
-        Ok(Line::Forall(forall))
-        // if let Ok(stmt) = self.forall(0, warnings) {
-        // } else if let Ok(stmt) = self.rule(0, warnings) {
-        // } else if self.empty(0).is_ok() {
-        // }
+        let mut errors = vec![];
+        match self.forall(0, warnings) {
+            Ok(forall) => return Ok(Line::Forall(forall)),
+            Err(e) => errors.push(e),
+        }
+
+        match self.empty(0) {
+            Ok(_) => return Ok(Line::Empty),
+            Err(e) => errors.push(e),
+        }
+
+        // Find the errors that have occured the latest and return those
+        // can never fail because the rules above produced errors for sure
+        let max = errors.iter().map(|error| error.position().0).max().unwrap();
+        let on_max = errors.iter().filter(|error| error.position().0 == max);
+
+        unimplemented!()
     }
 
     /// Expect the next token to be a specific token type.
-    /// Return Some(token) if the token matched
-    /// Return Err(Ok(token)) if a different token was read
-    /// Return Err(Err()) if no token could be read
-    fn expect(&self, position: &mut usize, expected: Token) -> Result<Spanned<Token>, ParseError> {
+    fn expect(
+        &self,
+        position: &mut usize,
+        expected: Token,
+    ) -> Result<Spanned<Token>, TokenNotFound> {
         match self.tokenizer.try_read(position, expected) {
             Some(positioned) => {
                 self.skip_filler(position);
                 Ok(positioned)
             }
-            None => Err(ParseError::new(
-                Span::position(*position),
-                ParseErrorVariant::UnexpectedToken { expected: expected },
-            )),
+            None => Err(TokenNotFound::new(Span::position(*position), expected)),
         }
     }
 
     /// Skip any constructs that can always appear inbetween tokens
     /// like /* comments */ or whitespaces
     fn skip_filler(&self, position: &mut usize) {
-        let mut found = self.tokenizer.try_read(position, Token::Space);
-        while let Some(_) = found {
-            found = self.tokenizer.try_read(position, Token::Space);
+        while let Some(_) = self.tokenizer.try_read(position, Token::Space) {}
+    }
+
+    /// Check whether or not the position is a valid line ending
+    fn line_end(&self, position: &mut usize) -> Result<(), TokenNotFound> {
+        // A line **can** end with a comment, but if no comment
+        // is there, don't suggest one (:
+        if self.expect(position, Token::Comment).is_err() {
+            self.expect(position, Token::End)?;
         }
+        Ok(())
     }
 
     /// Parse a line containing a forall statement, returning
@@ -88,7 +104,7 @@ impl<'a> Parser<'a> {
         &self,
         mut pos: usize,
         warnings: &mut Vec<Warning>,
-    ) -> Result<Vec<Ident>, ParseError> {
+    ) -> Result<Vec<Ident>, TokenNotFound> {
         self.expect(&mut pos, Token::Forall)?;
 
         let initial_token = self.expect(&mut pos, Token::Ident)?;
@@ -100,8 +116,8 @@ impl<'a> Parser<'a> {
             let token_str = self.read_span(token.span());
 
             // Make sure to warn the user if an identifier is freed twice
-            // TODO: forall x,y,y doesnt get flagged
             let maybe_duplicate = idents.iter().find(|i| i.as_inner() == &token_str);
+
             if let Some(duplicate) = maybe_duplicate {
                 warnings.push(Warning::DuplicateScopedVariable {
                     ident: token_str.to_owned(),
@@ -109,9 +125,10 @@ impl<'a> Parser<'a> {
                     second_declaration: token.span(),
                 });
             }
-            idents.push(token.map(initial_token_str));
+            idents.push(token.map(token_str));
         }
-        self.expect(&mut pos, Token::End)?;
+
+        self.line_end(&mut pos)?;
 
         // Remove source code annotations
         let idents_clean = idents
@@ -128,14 +145,13 @@ impl<'a> Parser<'a> {
         &self,
         mut pos: usize,
         warnings: &mut Vec<Warning>,
-    ) -> Result<(Spanned<Vec<Ident>>, bool), ParseError> {
+    ) -> Result<(Spanned<Vec<Ident>>, bool), TokenNotFound> {
         let indented = self.expect(&mut pos, Token::Ident).is_ok();
         unimplemented!()
     }
 
-    fn empty(&self, mut pos: usize) -> Result<(), ParseError> {
-        self.expect(&mut pos, Token::End)?;
-        Ok(())
+    fn empty(&self, mut pos: usize) -> Result<(), TokenNotFound> {
+        self.line_end(&mut pos)
     }
 
     fn read_span(&self, span: Span) -> &str {

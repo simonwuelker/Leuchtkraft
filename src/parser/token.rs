@@ -36,22 +36,10 @@ pub enum Token {
     False,
 
     /// Singleline comment (`//`)
-    SinglelineComment,
-
-    /// Multiline comment open (`/*`)
-    MultilineCommentOpen,
-
-    /// Multiline comment close (`*/`)
-    MultilineCommentClose,
+    Comment,
 
     /// Spaces (used for indentation and seperating tokens)
     Space,
-
-    /// Tabs (used for indentation)
-    Tab,
-
-    /// A character that cannot be directly identified as a token
-    Character,
 
     /// A token marking the end of the input stream
     End,

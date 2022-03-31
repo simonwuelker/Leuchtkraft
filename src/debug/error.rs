@@ -1,7 +1,6 @@
 //! Defines behaviour shared by every Leuchtkraft error type
 
-use super::annotation::DisplaySnippet;
-use annotate_snippets::snippet::{Annotation, AnnotationType, Slice};
+// use super::diagnostic::Diagnostic;
 
 pub trait ErrorVariant {
     fn title(&self) -> &str;

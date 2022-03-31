@@ -1,3 +1,4 @@
+use crate::diagnostics::{Context, Diagnostic, DisplayDiagnostic};
 use crate::interpreter::Interpreter;
 use crate::util;
 use std::io::Write;
@@ -34,9 +35,10 @@ impl Iterator for Repl {
 }
 
 /// Start a interactive Leuchtkraft shell
-pub fn run_repl<I>(i: &mut Interpreter, source: I, source_name: Option<&str>)
+pub fn run_repl<I, W>(i: &mut Interpreter, source: I, context: Context, writer: &mut W)
 where
     I: Iterator<Item = String>,
+    W: termcolor::WriteColor,
 {
     source.enumerate().for_each(|(ix, line)| {
         let lineno = ix + 1;
@@ -45,12 +47,14 @@ where
                 if let Some(text) = response.text() {
                     println!("=> {}", text);
                 }
+
                 response
                     .warnings()
                     .iter()
-                    .for_each(|w| util::print_snippet(w, &line, lineno, source_name));
+                    .map(|warning| Diagnostic::from((warning, line.as_ref())))
+                    .for_each(|diagnostic| writer.render(diagnostic, lineno, &context).unwrap());
             }
-            Err(err) => util::print_snippet(err, &line, lineno, source_name),
+            Err(err) => {} // util::print_snippet(err, &line, lineno, source_name),
         }
     });
 }

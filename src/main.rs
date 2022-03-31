@@ -2,41 +2,49 @@
 
 mod cli;
 mod debug;
+mod diagnostics;
 mod interpreter;
 mod logic;
 mod parser;
 mod repl;
 mod util;
 
-use anyhow::{Context, Result};
 use debug::panic;
+use diagnostics::Context;
 use interpreter::Interpreter;
 use repl::{run_repl, Repl};
 use std::fs;
 use structopt::StructOpt;
+use termcolor::{ColorChoice, StandardStream};
 
-fn main() -> Result<()> {
-    panic::init();
+fn main() {
+    panic::init(); // Initialize custom panic handler
 
     let options = cli::Options::from_args();
 
+    let colors = if options.no_color {
+        ColorChoice::Never
+    } else {
+        ColorChoice::Auto
+    };
+    let mut stdout = StandardStream::stdout(colors);
+
     let mut i = Interpreter::new();
     if let Some(filename) = options.file_name {
-        let file =
-            fs::read_to_string(&filename).with_context(|| format!("Cannot open {:?}", filename))?;
+        let file = fs::read_to_string(&filename).unwrap();
 
         run_repl(
             &mut i,
             file.lines().map(|l| l.to_owned()),
-            filename.to_str(),
+            Context::File(filename),
+            &mut stdout,
         );
 
         if options.interactive {
-            run_repl(&mut i, Repl::new(), None);
+            run_repl(&mut i, Repl::new(), Context::Repl, &mut stdout);
         }
     } else {
         // Enter a REPL
-        run_repl(&mut i, Repl::new(), None);
+        run_repl(&mut i, Repl::new(), Context::Repl, &mut stdout);
     }
-    Ok(())
 }

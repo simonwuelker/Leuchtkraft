@@ -10,5 +10,4 @@ repository = "https://github.com/Wuelle/Leuchtkraft"
 
 [dependencies]
 structopt = "0.3"
-anyhow = "1"
-annotate-snippets = { version = "0.9", features = ["color"] }
+termcolor = "1"

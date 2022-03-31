@@ -1,68 +1,69 @@
 use super::span::Span;
 use super::token::Token;
-use crate::debug::annotation::DisplaySnippet;
+// use crate::debug::diagnostic::Diagnostic;
 use crate::debug::error::ErrorVariant;
-use annotate_snippets::snippet::{Annotation, AnnotationType, SourceAnnotation};
 
-/// Errors during parsing occupy error codes 001-100
-pub struct ParseError {
+/// A token was expected, but not found
+pub struct TokenNotFound {
     position: Span,
-    variant: ParseErrorVariant,
+    expected: Token,
 }
 
-pub enum ParseErrorVariant {
-    /// Errors during the first steps in parsing
-    UnexpectedCharacter {
-        found: char,
-        expected: Option<Vec<char>>,
-    },
-    UnexpectedEndOfInput,
-    UnexpectedToken {
-        expected: Token,
-    },
-}
-
-impl ErrorVariant for ParseErrorVariant {
-    fn title(&self) -> &str {
-        match self {
-            ParseErrorVariant::UnexpectedCharacter { .. } => "Unexpected Chararacter",
-            ParseErrorVariant::UnexpectedEndOfInput => "Unexpected end of input",
-            ParseErrorVariant::UnexpectedToken { .. } => "Unexpected Token",
-        }
-    }
-
-    fn code(&self) -> usize {
-        match self {
-            ParseErrorVariant::UnexpectedCharacter { .. } => 1,
-            ParseErrorVariant::UnexpectedEndOfInput => 2,
-            ParseErrorVariant::UnexpectedToken { .. } => 3,
-        }
-    }
-}
-
-impl ParseError {
-    pub fn new(span: Span, variant: ParseErrorVariant) -> Self {
+impl TokenNotFound {
+    pub fn new(span: Span, expected: Token) -> Self {
         Self {
             position: span,
-            variant: variant,
-        }
-    }
-}
-
-impl DisplaySnippet for ParseError {
-    fn title(&self) -> Annotation {
-        Annotation {
-            label: Some(self.variant.title()),
-            id: None,
-            annotation_type: AnnotationType::Error,
+            expected: expected,
         }
     }
 
-    fn footer(&self) -> Vec<Annotation> {
-        vec![]
-    }
-
-    fn source_annotations(&self) -> Vec<SourceAnnotation> {
-        vec![]
+    pub fn position(&self) -> Span {
+        self.position
     }
 }
+
+// impl DisplaySnippet for TokenNotFound {
+//     fn title(&self) -> Annotation {
+//         Annotation {
+//             label: Some("Expected token was not found"),
+//             id: None,
+//             annotation_type: AnnotationType::Error,
+//         }
+//     }
+//
+//     fn footer(&self) -> Vec<Annotation> {
+//         let example = match self.expected {
+//             Token::Ident => "this_is_a_c0Ol_identifier",
+//             Token::Indent => " ",
+//             Token::OpeningParen => "(",
+//             Token::ClosingParen => ")",
+//             Token::Implication => "=>",
+//             Token::Questionmark => "?",
+//             Token::Forall => "forall",
+//             Token::True => "true",
+//             Token::False => "false",
+//             Token::Comma => ",",
+//             Token::Comment => "// this is a comment",
+//             Token::Space => " ",
+//             Token::End => unreachable!("dont recommend adding an END token"),
+//         };
+//
+//         vec![
+//             Annotation {
+//                 id: None,
+//                 label: Some(example),
+//                 annotation_type: AnnotationType::Note,
+//             },
+//         ]
+//     }
+//
+//     fn source_annotations(&self) -> Vec<SourceAnnotation> {
+//         vec![
+//             SourceAnnotation {
+//                 range: self.position.as_range(),
+//                 label: "FIXME", // format here
+//                 annotation_type: AnnotationType::Info,
+//             },
+//         ]
+//     }
+// }

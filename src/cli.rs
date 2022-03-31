@@ -11,4 +11,8 @@ pub struct Options {
     /// Enter a repl once the program exits
     #[structopt(short, long)]
     pub interactive: bool,
+
+    /// Disable colored output
+    #[structopt(short, long)]
+    pub no_color: bool,
 }

@@ -3,18 +3,18 @@ Leuchtkraft is my tiny, declarative Programming Language.
 
 A basic Leuchtkraft program might look like this:
 ```
-/* Logic clauses */
+// Logic Clauses
 forall X
     bird(X) and healthy(X) => canfly(X) // Healthy birds can fly
     canfly(X) => healthy(X)             // Things that fly are healthy
     wounded(X) and healthy(X) => false  // Things can't both be healthy and wounded
 
-/* Facts */
+// Facts
 true => bird(john) and bird(mary) and bird(jane) // john, mary and jane are birds
 true => wounded(john) // john is wounded
 true => healthy(jane) // jane is healthy
 
-/* Conclusions */
+// Conclusions
 X? => canfly(john) => X? // False (john is not a healthy bird)
 Y? => canfly(mary) => Y? // Indeterminate (mary's health is unknown)
 Z? => canfly(jane) => Z? // True (jane is a healthy bird)

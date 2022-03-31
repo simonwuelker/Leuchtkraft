@@ -26,20 +26,10 @@ impl<'a> Tokenizer<'a> {
             Token::Forall => self.take(pos, "forall").map(|o| o.map(Token::Forall)),
             Token::True => self.take(pos, "true").map(|o| o.map(Token::True)),
             Token::False => self.take(pos, "false").map(|o| o.map(Token::False)),
-            Token::SinglelineComment => self
-                .take(pos, "//")
-                .map(|o| o.map(Token::SinglelineComment)),
-            Token::MultilineCommentOpen => self
-                .take(pos, "/*")
-                .map(|o| o.map(Token::MultilineCommentOpen)),
-            Token::MultilineCommentClose => self
-                .take(pos, "*/")
-                .map(|o| o.map(Token::MultilineCommentClose)),
+            Token::Comment => self.take(pos, "//").map(|o| o.map(Token::Comment)),
             Token::Space => self
                 .consume_if(pos, |c| c.is_whitespace())
                 .map(|o| o.map(Token::Space)),
-            Token::Tab => self.take(pos, "\t").map(|o| o.map(Token::Tab)),
-            Token::Character => self.consume(pos).map(|o| o.map(Token::Character)),
             Token::Indent => self
                 .consume_while(pos, |c| c.is_whitespace())
                 .map(|o| o.map(Token::Ident)),
@@ -109,16 +99,6 @@ impl<'a> Tokenizer<'a> {
         } else {
             self.consume_exact(pos, len)
         }
-    }
-
-    /// Return a single character without advancing the reader position
-    fn peek(&self, pos: &usize) -> Option<char> {
-        self.buffer.chars().nth(*pos)
-    }
-
-    /// Read exactly n characters without advancing the reader position
-    fn peek_exact(&self, pos: usize, n: usize) -> &str {
-        &self.buffer[pos..pos + n]
     }
 
     fn take(&self, pos: &mut usize, expected: &str) -> Option<Spanned<()>> {
