@@ -43,3 +43,9 @@ impl Span {
         (self.0, self.1)
     }
 }
+
+impl From<usize> for Span {
+    fn from(from: usize) -> Self {
+        Self(from, from + 1)
+    }
+}

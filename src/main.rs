@@ -10,9 +10,8 @@ mod repl;
 mod util;
 
 use debug::panic;
-use diagnostics::Context;
 use interpreter::Interpreter;
-use repl::{run_repl, Repl};
+use repl::{run_repl, Context, Repl};
 use std::fs;
 use structopt::StructOpt;
 use termcolor::{ColorChoice, StandardStream};

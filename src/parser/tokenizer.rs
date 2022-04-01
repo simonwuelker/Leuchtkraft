@@ -111,10 +111,14 @@ impl<'a> Tokenizer<'a> {
                 Some(found) => {
                     let found_c = found.into_inner();
                     if found_c != expected_char {
+                        *pos = initial_pos;
                         return None;
                     }
                 }
-                None => return None,
+                None => {
+                    *pos = initial_pos;
+                    return None;
+                }
             }
         }
         Some(Spanned::new((), Span(initial_pos, *pos)))

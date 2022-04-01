@@ -7,5 +7,5 @@ mod diagnostic;
 mod render;
 
 pub use annotation_type::AnnotationType;
-pub use diagnostic::{Annotation, Context, Diagnostic};
+pub use diagnostic::{Annotation, Diagnostic};
 pub use render::DisplayDiagnostic;

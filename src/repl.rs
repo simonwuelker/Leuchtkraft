@@ -1,4 +1,4 @@
-use crate::diagnostics::{Context, Diagnostic, DisplayDiagnostic};
+use crate::diagnostics::{Diagnostic, DisplayDiagnostic};
 use crate::interpreter::Interpreter;
 use crate::util;
 use std::io::Write;
@@ -34,27 +34,54 @@ impl Iterator for Repl {
     }
 }
 
+/// The source of code
+pub enum Context {
+    /// User inputted code line by line
+    Repl,
+
+    /// Code read from a file with provided filename
+    File(std::path::PathBuf),
+}
+
+impl Context {
+    /// Determine whether or not the repl should exit after an error is encountered
+    pub fn exit_on_error(&self) -> bool {
+        match self {
+            Context::Repl => false,
+            Context::File(_) => true,
+        }
+    }
+}
+
 /// Start a interactive Leuchtkraft shell
-pub fn run_repl<I, W>(i: &mut Interpreter, source: I, context: Context, writer: &mut W)
+pub fn run_repl<I, W>(i: &mut Interpreter, source: I, ctx: Context, writer: &mut W)
 where
     I: Iterator<Item = String>,
     W: termcolor::WriteColor,
 {
-    source.enumerate().for_each(|(ix, line)| {
+    for (ix, line) in source.enumerate() {
         let lineno = ix + 1;
-        match i.execute(&line) {
-            Ok(response) => {
-                if let Some(text) = response.text() {
-                    println!("=> {}", text);
-                }
+        let (warnings, result) = i.execute(&line);
 
-                response
-                    .warnings()
-                    .iter()
-                    .map(|warning| Diagnostic::from((warning, line.as_ref())))
-                    .for_each(|diagnostic| writer.render(diagnostic, lineno, &context).unwrap());
+        // Print all the warnings
+        warnings
+            .iter()
+            .map(|warning| Diagnostic::from((warning, line.as_ref())))
+            .for_each(|diagnostic| writer.render(diagnostic, lineno, &ctx).unwrap());
+
+        // Print either the result (if any) or the errors that occured
+        match result {
+            Ok(Some(text)) => {
+                println!("=> {}", text);
             }
-            Err(err) => {} // util::print_snippet(err, &line, lineno, source_name),
+            Ok(None) => {}
+            Err(error) => {
+                writer.render(error, lineno, &ctx).unwrap();
+
+                if ctx.exit_on_error() {
+                    return;
+                }
+            }
         }
-    });
+    }
 }

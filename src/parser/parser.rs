@@ -6,14 +6,6 @@ use crate::debug::warning::Warning;
 use crate::interpreter::Ident;
 use crate::util::calculate_hash;
 
-/// The characters used for indenting a line
-pub enum Indentation {
-    /// Fixed number of spaces per indentation level
-    Spaces(usize),
-    /// Tab character
-    Tabs,
-}
-
 struct Predicate;
 
 type Rule = Vec<Vec<Predicate>>;
@@ -48,23 +40,17 @@ impl<'a> Parser<'a> {
     /// Try to parse the internal buffer as a line
     pub fn line(&self, warnings: &mut Vec<Warning>) -> Result<Line, TokenNotFound> {
         // Look at how nice PEG grammars look!
-        let mut errors = vec![];
-        match self.forall(0, warnings) {
+        let mut expected = match self.forall(0, warnings) {
             Ok(forall) => return Ok(Line::Forall(forall)),
-            Err(e) => errors.push(e),
-        }
+            Err(e) => e,
+        };
 
         match self.empty(0) {
             Ok(_) => return Ok(Line::Empty),
-            Err(e) => errors.push(e),
+            Err(e) => expected.join(e),
         }
 
-        // Find the errors that have occured the latest and return those
-        // can never fail because the rules above produced errors for sure
-        let max = errors.iter().map(|error| error.position().0).max().unwrap();
-        let on_max = errors.iter().filter(|error| error.position().0 == max);
-
-        unimplemented!()
+        Err(expected)
     }
 
     /// Expect the next token to be a specific token type.
@@ -72,13 +58,13 @@ impl<'a> Parser<'a> {
         &self,
         position: &mut usize,
         expected: Token,
-    ) -> Result<Spanned<Token>, TokenNotFound> {
+    ) -> Result<Spanned<Token>, (usize, Token)> {
         match self.tokenizer.try_read(position, expected) {
             Some(positioned) => {
                 self.skip_filler(position);
                 Ok(positioned)
             }
-            None => Err(TokenNotFound::new(Span::position(*position), expected)),
+            None => Err((*position, expected)),
         }
     }
 

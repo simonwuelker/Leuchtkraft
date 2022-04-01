@@ -4,15 +4,7 @@ use std::path::PathBuf;
 
 use super::annotation_type::AnnotationType;
 use crate::parser::span::Span;
-
-/// The source of code
-pub enum Context {
-    /// User inputted code line by line
-    Repl,
-
-    /// Code read from a file with provided filename
-    File(PathBuf),
-}
+use crate::repl::Context;
 
 pub struct Annotation {
     pub annotation_type: AnnotationType,

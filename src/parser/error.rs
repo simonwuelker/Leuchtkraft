@@ -1,69 +1,77 @@
 use super::span::Span;
 use super::token::Token;
-// use crate::debug::diagnostic::Diagnostic;
-use crate::debug::error::ErrorVariant;
+use crate::diagnostics::{Annotation, AnnotationType, Diagnostic};
 
 /// A token was expected, but not found
 pub struct TokenNotFound {
-    position: Span,
-    expected: Token,
+    position: usize,
+    expected: Vec<Token>,
 }
 
 impl TokenNotFound {
-    pub fn new(span: Span, expected: Token) -> Self {
+    pub fn new(pos: usize, expected: Vec<Token>) -> Self {
         Self {
-            position: span,
+            position: pos,
             expected: expected,
         }
     }
 
-    pub fn position(&self) -> Span {
+    pub fn position(&self) -> usize {
         self.position
+    }
+
+    pub fn join_raw(&mut self, other: (usize, Token)) {
+        if self.position < other.0 {
+            self.expected.truncate(1);
+            self.expected[0] = other.1;
+        } else if self.position == other.0 {
+            self.expected.push(other.1);
+        }
+    }
+
+    pub fn join(&mut self, mut other: Self) {
+        if self.position < other.position {
+            self.expected = other.expected;
+        } else if self.position == other.position {
+            self.expected.append(&mut other.expected);
+        }
     }
 }
 
-// impl DisplaySnippet for TokenNotFound {
-//     fn title(&self) -> Annotation {
-//         Annotation {
-//             label: Some("Expected token was not found"),
-//             id: None,
-//             annotation_type: AnnotationType::Error,
-//         }
-//     }
-//
-//     fn footer(&self) -> Vec<Annotation> {
-//         let example = match self.expected {
-//             Token::Ident => "this_is_a_c0Ol_identifier",
-//             Token::Indent => " ",
-//             Token::OpeningParen => "(",
-//             Token::ClosingParen => ")",
-//             Token::Implication => "=>",
-//             Token::Questionmark => "?",
-//             Token::Forall => "forall",
-//             Token::True => "true",
-//             Token::False => "false",
-//             Token::Comma => ",",
-//             Token::Comment => "// this is a comment",
-//             Token::Space => " ",
-//             Token::End => unreachable!("dont recommend adding an END token"),
-//         };
-//
-//         vec![
-//             Annotation {
-//                 id: None,
-//                 label: Some(example),
-//                 annotation_type: AnnotationType::Note,
-//             },
-//         ]
-//     }
-//
-//     fn source_annotations(&self) -> Vec<SourceAnnotation> {
-//         vec![
-//             SourceAnnotation {
-//                 range: self.position.as_range(),
-//                 label: "FIXME", // format here
-//                 annotation_type: AnnotationType::Info,
-//             },
-//         ]
-//     }
-// }
+impl From<(usize, Token)> for TokenNotFound {
+    fn from(from: (usize, Token)) -> Self {
+        Self {
+            position: from.0,
+            expected: vec![from.1],
+        }
+    }
+}
+
+impl<'a> From<(TokenNotFound, &'a str)> for Diagnostic<'a> {
+    fn from(from: (TokenNotFound, &'a str)) -> Self {
+        let span = Span::from(from.0.position);
+
+        let annotation = if from.0.expected.len() == 1 {
+            Annotation {
+                annotation_type: AnnotationType::Info,
+                span: span,
+                msg: format!("Expected {:?}", from.0.expected[0]),
+            }
+        } else {
+            Annotation {
+                annotation_type: AnnotationType::Info,
+                span: span,
+                msg: format!("Expected any of {:?}", from.0.expected),
+            }
+        };
+
+        Self {
+            code: None,
+            buffer: from.1,
+            annotation_type: AnnotationType::Error,
+            annotations: vec![annotation],
+            msg: "Expected token was not found".to_owned(),
+            note: None,
+        }
+    }
+}

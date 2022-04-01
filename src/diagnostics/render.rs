@@ -1,7 +1,8 @@
 use termcolor::{Color, ColorSpec, WriteColor};
 
 use super::annotation_type::AnnotationType;
-use super::diagnostic::{Context, Diagnostic};
+use super::diagnostic::Diagnostic;
+use crate::repl::Context;
 use std::io;
 
 pub fn annotation_color(annotation_type: &AnnotationType) -> ColorSpec {
