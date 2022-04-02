@@ -13,37 +13,36 @@ use debug::panic;
 use interpreter::Interpreter;
 use repl::{run_repl, Context, Repl};
 use std::fs;
-use structopt::StructOpt;
 use termcolor::{ColorChoice, StandardStream};
 
 fn main() {
     panic::init(); // Initialize custom panic handler
 
-    let options = cli::Options::from_args();
+    if let Some(options) = cli::Options::from_args() {
+        let colors = if options.no_color {
+            ColorChoice::Never
+        } else {
+            ColorChoice::Auto
+        };
+        let mut stdout = StandardStream::stdout(colors);
 
-    let colors = if options.no_color {
-        ColorChoice::Never
-    } else {
-        ColorChoice::Auto
-    };
-    let mut stdout = StandardStream::stdout(colors);
+        let mut i = Interpreter::new();
+        if let Some(filename) = options.file_name {
+            let file = fs::read_to_string(&filename).unwrap();
 
-    let mut i = Interpreter::new();
-    if let Some(filename) = options.file_name {
-        let file = fs::read_to_string(&filename).unwrap();
+            run_repl(
+                &mut i,
+                file.lines().map(|l| l.to_owned()),
+                Context::File(filename),
+                &mut stdout,
+            );
 
-        run_repl(
-            &mut i,
-            file.lines().map(|l| l.to_owned()),
-            Context::File(filename),
-            &mut stdout,
-        );
-
-        if options.interactive {
+            if options.interactive {
+                run_repl(&mut i, Repl::new(), Context::Repl, &mut stdout);
+            }
+        } else {
+            // Enter a REPL
             run_repl(&mut i, Repl::new(), Context::Repl, &mut stdout);
         }
-    } else {
-        // Enter a REPL
-        run_repl(&mut i, Repl::new(), Context::Repl, &mut stdout);
     }
 }
