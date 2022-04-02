@@ -1,25 +1,13 @@
+//! Converts from tokens to symbols
+
 use super::error::TokenNotFound;
 use super::span::{Span, Spanned};
+use super::symbol::{Atom, Line};
 use super::token::Token;
 use super::tokenizer::Tokenizer;
 use crate::debug::warning::Warning;
 use crate::interpreter::Ident;
 use crate::util::calculate_hash;
-
-struct Predicate;
-
-type Rule = Vec<Vec<Predicate>>;
-
-pub enum Line {
-    /// Forall keyword with list of freed identifiers
-    Forall(Vec<Ident>),
-    /// (indentation level, rule)
-    IndentedRule(Rule),
-    /// Unindented (free) rule
-    Rule(Rule),
-    /// Empty Line
-    Empty,
-}
 
 /// A data structure that creates a program from tokens
 ///
@@ -66,6 +54,25 @@ impl<'a> Parser<'a> {
             }
             None => Err((*position, expected)),
         }
+    }
+
+    fn expect_either(
+        &self,
+        position: &mut usize,
+        expected: Vec<Token>,
+    ) -> Result<Spanned<Token>, TokenNotFound> {
+        let mut expected_tokens = match self.expect(position, expected[0]) {
+            Ok(found) => return Ok(found),
+            Err(expected) => TokenNotFound::from(expected),
+        };
+
+        for token in expected.into_iter().skip(1) {
+            match self.expect(position, token) {
+                Ok(found) => return Ok(found),
+                Err(expected) => expected_tokens.join_raw(expected),
+            }
+        }
+        Err(expected_tokens)
     }
 
     /// Skip any constructs that can always appear inbetween tokens
@@ -131,9 +138,57 @@ impl<'a> Parser<'a> {
         &self,
         mut pos: usize,
         warnings: &mut Vec<Warning>,
-    ) -> Result<(Spanned<Vec<Ident>>, bool), TokenNotFound> {
-        let indented = self.expect(&mut pos, Token::Ident).is_ok();
-        unimplemented!()
+    ) -> Result<(Spanned<Line>, bool), TokenNotFound> {
+        let is_indented = self.expect(&mut pos, Token::Indent).is_ok();
+
+        unimplemented!();
+        loop {}
+        let ident_token = self.expect(&mut pos, Token::Ident)?;
+        unimplemented!();
+    }
+
+    fn read_atom(
+        &self,
+        pos: &mut usize,
+        warnings: &mut Vec<Warning>,
+    ) -> Result<Spanned<Atom>, TokenNotFound> {
+        let found = self.expect_either(pos, vec![Token::True, Token::False, Token::Ident])?;
+        match found.as_inner() {
+            Token::True => Ok(found.map(Atom::True)),
+            Token::False => Ok(found.map(Atom::False)),
+            Token::Ident => {
+                let predicate_name = calculate_hash(&self.read_span(found.span()));
+                self.expect(pos, Token::OpeningParen)?;
+                let mut ident_strs = vec![];
+
+                // Read the functions arguments
+                let first = self.expect_either(pos, vec![Token::Ident, Token::ClosingParen])?;
+                let symbol_end = match first.as_inner() {
+                    Token::Ident => {
+                        ident_strs.push(self.read_span(first.span()));
+                        loop {
+                            let next =
+                                self.expect_either(pos, vec![Token::Comma, Token::ClosingParen])?;
+                            match next.as_inner() {
+                                Token::Comma => {
+                                    let arg = self.expect(pos, Token::Ident)?;
+                                    ident_strs.push(self.read_span(arg.span()));
+                                }
+                                Token::ClosingParen => break next.span().1,
+                                _ => unreachable!(),
+                            }
+                        }
+                    }
+                    Token::ClosingParen => first.span().1, // function has no args, done
+                    _ => unreachable!(),
+                };
+
+                let idents = ident_strs.iter().map(|i| calculate_hash(i)).collect();
+                let atom = Atom::Predicate(predicate_name, idents);
+                Ok(Spanned::new(atom, Span(found.span().0, symbol_end)))
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn empty(&self, mut pos: usize) -> Result<(), TokenNotFound> {
