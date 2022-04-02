@@ -102,6 +102,9 @@ impl<W: WriteColor> DisplayDiagnostic for W {
         if let Some(note) = diagnostic.note {
             write!(self, "{} =", " ".repeat(lineno_len))?;
 
+            self.set_color(ColorSpec::new().set_fg(Some(Color::White)).set_bold(true))?;
+            write!(self, "note: ")?;
+
             self.set_color(&annotation_color(&AnnotationType::Note))?;
             writeln!(self, "{}", &note)?;
         } else {

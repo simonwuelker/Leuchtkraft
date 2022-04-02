@@ -7,6 +7,8 @@ pub struct Tokenizer<'a> {
     buffer: &'a str,
 }
 
+const RESERVED_IDENTS: [&'static str; 4] = ["forall", "and", "true", "false"];
+
 impl<'a> Tokenizer<'a> {
     /// Create a new Lexer from an input buffer
     pub fn new(buffer: &'a str) -> Self {
@@ -14,25 +16,35 @@ impl<'a> Tokenizer<'a> {
     }
 
     pub fn try_read(&'a self, pos: &mut usize, token: Token) -> Option<Spanned<Token>> {
+        let initial_pos = *pos;
         match token {
             Token::Ident => self
                 .consume_while(pos, |c: &char| c.is_alphanumeric() || c == &'_')
-                .map(|o| o.map(Token::Ident)),
-            Token::OpeningParen => self.take(pos, "(").map(|o| o.map(Token::OpeningParen)),
-            Token::ClosingParen => self.take(pos, ")").map(|o| o.map(Token::OpeningParen)),
-            Token::Implication => self.take(pos, "=>").map(|o| o.map(Token::Implication)),
-            Token::Questionmark => self.take(pos, "?").map(|o| o.map(Token::Questionmark)),
-            Token::Comma => self.take(pos, ",").map(|o| o.map(Token::Comma)),
-            Token::Forall => self.take(pos, "forall").map(|o| o.map(Token::Forall)),
-            Token::True => self.take(pos, "true").map(|o| o.map(Token::True)),
-            Token::False => self.take(pos, "false").map(|o| o.map(Token::False)),
-            Token::Comment => self.take(pos, "//").map(|o| o.map(Token::Comment)),
+                .and_then(|ident| {
+                    if RESERVED_IDENTS.contains(ident.as_inner()) {
+                        *pos = initial_pos;
+                        None
+                    } else {
+                        Some(ident)
+                    }
+                })
+                .map(|o| o.map(token)),
+            Token::OpeningParen => self.take(pos, "(").map(|o| o.map(token)),
+            Token::ClosingParen => self.take(pos, ")").map(|o| o.map(token)),
+            Token::Implication => self.take(pos, "=>").map(|o| o.map(token)),
+            Token::Questionmark => self.take(pos, "?").map(|o| o.map(token)),
+            Token::Comma => self.take(pos, ",").map(|o| o.map(token)),
+            Token::Forall => self.take(pos, "forall").map(|o| o.map(token)),
+            Token::And => self.take(pos, "and").map(|o| o.map(token)),
+            Token::True => self.take(pos, "true").map(|o| o.map(token)),
+            Token::False => self.take(pos, "false").map(|o| o.map(token)),
+            Token::Comment => self.take(pos, "//").map(|o| o.map(token)),
             Token::Space => self
                 .consume_if(pos, |c| c.is_whitespace())
-                .map(|o| o.map(Token::Space)),
+                .map(|o| o.map(token)),
             Token::Indent => self
                 .consume_while(pos, |c| c.is_whitespace())
-                .map(|o| o.map(Token::Ident)),
+                .map(|o| o.map(token)),
             Token::End => {
                 if *pos == self.buffer.len() {
                     Some(Spanned::new(Token::End, Span::position(*pos)))
