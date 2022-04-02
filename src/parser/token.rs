@@ -29,6 +29,9 @@ pub enum Token {
     /// Forall keyword
     Forall,
 
+    /// And keyword
+    And,
+
     /// True primitive
     True,
 

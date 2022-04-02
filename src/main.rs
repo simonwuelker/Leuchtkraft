@@ -17,7 +17,7 @@ use structopt::StructOpt;
 use termcolor::{ColorChoice, StandardStream};
 
 fn main() {
-    panic::init(); // Initialize custom panic handler
+    // panic::init(); // Initialize custom panic handler
 
     let options = cli::Options::from_args();
 

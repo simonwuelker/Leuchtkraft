@@ -5,7 +5,7 @@ use crate::diagnostics::{Annotation, AnnotationType, Diagnostic};
 /// A token was expected, but not found
 pub struct TokenNotFound {
     position: usize,
-    expected: Vec<Token>,
+    pub expected: Vec<Token>,
 }
 
 impl TokenNotFound {
@@ -22,6 +22,7 @@ impl TokenNotFound {
 
     pub fn join_raw(&mut self, other: (usize, Token)) {
         if self.position < other.0 {
+            self.position = other.0;
             self.expected.truncate(1);
             self.expected[0] = other.1;
         } else if self.position == other.0 {
@@ -31,6 +32,7 @@ impl TokenNotFound {
 
     pub fn join(&mut self, mut other: Self) {
         if self.position < other.position {
+            self.position = other.position;
             self.expected = other.expected;
         } else if self.position == other.position {
             self.expected.append(&mut other.expected);
