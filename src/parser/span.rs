@@ -38,12 +38,6 @@ impl<T> Spanned<T> {
     }
 }
 
-impl Span {
-    pub fn as_range(&self) -> (usize, usize) {
-        (self.0, self.1)
-    }
-}
-
 impl From<usize> for Span {
     fn from(from: usize) -> Self {
         Self(from, from + 1)

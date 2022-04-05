@@ -1,6 +1,5 @@
 use crate::diagnostics::{Diagnostic, DisplayDiagnostic};
 use crate::interpreter::Interpreter;
-use crate::util;
 use std::io::Write;
 
 /// Iterator over lines from stdin

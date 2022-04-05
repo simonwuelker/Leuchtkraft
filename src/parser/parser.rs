@@ -6,7 +6,6 @@ use super::symbol::{Atom, Line};
 use super::token::Token;
 use super::tokenizer::Tokenizer;
 use crate::debug::warning::Warning;
-use crate::interpreter::Ident;
 use crate::util::calculate_hash;
 
 /// A data structure that creates a program from tokens
@@ -42,7 +41,7 @@ impl<'a> Parser<'a> {
         }
 
         match self.empty(0) {
-            Ok(empty_line) => return Ok(None),
+            Ok(_) => return Ok(None),
             Err(e) => expected.join(e),
         }
 
@@ -172,7 +171,7 @@ impl<'a> Parser<'a> {
         let mut found_implication = false;
         let end = loop {
             let expected = if found_implication {
-                vec![Token::And, Token::Implication, Token::End]
+                vec![Token::And, Token::Implication, Token::End, Token::Comment]
             } else {
                 vec![Token::And, Token::Implication]
             };
@@ -184,7 +183,7 @@ impl<'a> Parser<'a> {
                     found_implication = true;
                 }
                 Token::And => {}
-                Token::End => break connector.span().0,
+                Token::End | Token::Comment => break connector.span().0,
                 _ => unreachable!(),
             }
             atoms
@@ -250,52 +249,69 @@ impl<'a> Parser<'a> {
     fn read_atom(
         &self,
         pos: &mut usize,
-        warnings: &mut Vec<Warning>,
+        _warnings: &mut Vec<Warning>,
     ) -> Result<Spanned<Atom>, TokenNotFound> {
         let found = self.expect_either(pos, vec![Token::True, Token::False, Token::Ident])?;
         match found.as_inner() {
             Token::True => Ok(found.map(Atom::True)),
             Token::False => Ok(found.map(Atom::False)),
             Token::Ident => {
-                let predicate_name = calculate_hash(&self.read_span(found.span()));
+                let ident = calculate_hash(&self.read_span(found.span()));
 
-                self.expect(pos, Token::OpeningParen)?;
-
-                // Read the functions arguments
-                let mut ident_strs = vec![];
-                let first = self.expect_either(pos, vec![Token::Ident, Token::ClosingParen])?;
-                let symbol_end = match first.as_inner() {
-                    Token::Ident => {
-                        ident_strs.push(self.read_span(first.span()));
-                        loop {
-                            let next =
-                                self.expect_either(pos, vec![Token::Comma, Token::ClosingParen])?;
-                            match next.as_inner() {
-                                Token::Comma => {
-                                    let arg = self.expect(pos, Token::Ident)?;
-                                    ident_strs.push(self.read_span(arg.span()));
-                                }
-                                Token::ClosingParen => break next.span().1,
-                                _ => unreachable!("{:?}", next.as_inner()),
-                            }
-                        }
+                let after_ident =
+                    self.expect_either(pos, vec![Token::OpeningParen, Token::Questionmark])?;
+                match after_ident.as_inner() {
+                    Token::Questionmark => {
+                        let atom = Atom::Unknown(ident);
+                        Ok(Spanned::new(
+                            atom,
+                            Span(found.span().0, after_ident.span().1),
+                        ))
                     }
-                    Token::ClosingParen => first.span().1, // function has no args, done
-                    _ => unreachable!("{:?}", first.as_inner()),
-                };
+                    Token::OpeningParen => {
+                        // Read the functions arguments
+                        let mut ident_strs = vec![];
+                        let first =
+                            self.expect_either(pos, vec![Token::Ident, Token::ClosingParen])?;
+                        let symbol_end = match first.as_inner() {
+                            Token::Ident => {
+                                ident_strs.push(self.read_span(first.span()));
+                                loop {
+                                    let next = self.expect_either(
+                                        pos,
+                                        vec![Token::Comma, Token::ClosingParen],
+                                    )?;
+                                    match next.as_inner() {
+                                        Token::Comma => {
+                                            let arg = self.expect(pos, Token::Ident)?;
+                                            ident_strs.push(self.read_span(arg.span()));
+                                        }
+                                        Token::ClosingParen => break next.span().1,
+                                        _ => unreachable!("{:?}", next.as_inner()),
+                                    }
+                                }
+                            }
+                            Token::ClosingParen => first.span().1, // function has no args, done
+                            _ => unreachable!("{:?}", first.as_inner()),
+                        };
 
-                let idents = ident_strs.iter().map(|i| calculate_hash(i)).collect();
-                let atom = Atom::Predicate(predicate_name, idents);
-                Ok(Spanned::new(atom, Span(found.span().0, symbol_end)))
+                        let idents = ident_strs.iter().map(|i| calculate_hash(i)).collect();
+                        let atom = Atom::Predicate(ident, idents);
+                        Ok(Spanned::new(atom, Span(found.span().0, symbol_end)))
+                    }
+                    _ => unreachable!(),
+                }
             }
-            _ => unreachable!(),
+            _ => unreachable!("{:?}", found.as_inner()),
         }
     }
 
+    /// Try to read an empty line
     fn empty(&self, mut pos: usize) -> Result<(), TokenNotFound> {
         self.line_end(&mut pos)
     }
 
+    /// Read the buffer contents from a given span
     fn read_span(&self, span: Span) -> &str {
         &self.buffer[span.0..span.1]
     }

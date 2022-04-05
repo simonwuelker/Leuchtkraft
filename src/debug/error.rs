@@ -1,55 +1,37 @@
-//! Defines behaviour shared by every Leuchtkraft error type
+use crate::diagnostics::{Annotation, AnnotationType, Diagnostic};
+use crate::parser::span::Span;
 
-// use super::diagnostic::Diagnostic;
-
-pub trait ErrorVariant {
-    fn title(&self) -> &str;
-    /// Every error is assigned a unique code.
-    /// Parse errors occupy the 0-100 range
-    fn code(&self) -> usize;
+pub enum Error {
+    UnexpectedIndent,
 }
 
-// impl DisplaySnippet for Error {
-//     fn title(&self) -> Annotation {
-//         Annotation {
-//             label: Some(self.variant.title()),
-//             id: Some(self.variant.code()),
-//             annotation_type: AnnotationType::Error,
-//         }
-//     }
-//     fn footer(&self) -> Vec<Annotation> {
-//         vec![]
-//     }
-//     fn slice(&self) -> Vec<Slice> {
-//         vec![]
-//     }
-// }
+impl<'a> From<(&'a Error, &'a str)> for Diagnostic<'a> {
+    fn from(other: (&'a Error, &'a str)) -> Self {
+        let annotations = match other.0 {
+            Error::UnexpectedIndent => vec![Annotation {
+                annotation_type: AnnotationType::Info,
+                span: Span::from(0), // indents are always at the beginning
+                msg: "expected no indentation".to_owned(),
+            }],
+        };
 
-// impl ErrorVariant {
-//     pub fn title(&self) -> &str {
-//         match self {
-//             Self::UnexpectedCharacter { .. } => "Unexpected character",
-//             Self::UnexpectedEndOfInput => "Unexpected end of input",
-//             Self::ParseError { .. } => "Parse Error",
-//             Self::Custom { .. } => "Custom Error",
-//         }
-//     }
-//
-//     pub fn code(&self) -> &str {
-//         match self {
-//             Self::UnexpectedCharacter { .. } => "E001",
-//             Self::UnexpectedEndOfInput => "E002",
-//             Self::ParseError { .. } => "E003",
-//             Self::Custom { .. } => "E004",
-//         }
-//     }
-// }
-//
-// impl Error {
-//     pub fn new(variant: ErrorVariant, location: Position) -> Self {
-//         Self {
-//             variant: variant,
-//             location: location,
-//         }
-//     }
-// }
+        let msg = match other.0 {
+            Error::UnexpectedIndent => "Unexpected indentation level".to_owned(),
+        };
+
+        let note = match other.0 {
+            Error::UnexpectedIndent { .. } => {
+                Some("Any number of spaces/tabs at the beginning of a line count as indentation")
+            }
+        };
+
+        Self {
+            code: None,
+            buffer: other.1,
+            annotation_type: AnnotationType::Error,
+            annotations: annotations,
+            msg: msg,
+            note: note,
+        }
+    }
+}

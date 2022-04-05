@@ -1,18 +1,12 @@
-use crate::logic::Ident;
+use crate::interpreter::Ident;
 
 #[derive(Debug, Clone, PartialEq)]
 /// The smallest (atomic) operand in a logical formula.
 pub enum Atom {
     /// A boolean value, either `true` or `false`
     Boolean(bool),
-    Predicate(Predicate),
+    Predicate(Ident, Vec<Var>),
     Unknown(Ident),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Predicate {
-    name: Ident,
-    args: Vec<Var>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -22,42 +16,45 @@ pub enum Var {
     Anonymous(Ident),
 }
 
-impl Predicate {
-    pub fn replace(&mut self, to_replace: &Var, replace_with: &Var) {
-        for arg in &mut self.args {
-            if arg == to_replace {
-                *arg = replace_with.clone();
-            }
-        }
+#[derive(Debug, Clone, PartialEq)]
+pub struct Clause(pub Vec<Vec<Atom>>);
+
+impl Clause {
+    pub fn new(and_chains: Vec<Vec<Atom>>) -> Self {
+        Self(and_chains)
     }
 
-    /// Other is assumed to not contain any anonymous variables
-    pub fn match_args(&self, other: &Self) -> Option<Vec<usize>> {
-        // Predicate names must be the same
-        if self.name != other.name {
-            return None;
+    /// Pin all occurences of an anonymous var to a fixed var
+    pub fn pin(&self, to_pin: Ident, pin_to: Ident) -> Self {
+        let mut cloned = self.clone();
+        for and_chain in &mut cloned.0 {
+            for atom in and_chain {
+                atom.pin_var(to_pin, pin_to);
+            }
         }
+        cloned
+    }
 
-        // indices of anonymous args that now take the value of other
-        let mut captured_args = vec![];
-        let matches = self
-            .args
+    pub fn contains(&self, search_for: &Atom) -> bool {
+        self.0
             .iter()
-            .zip(&other.args)
-            .enumerate()
-            .all(|(ix, (a1, a2))| {
-                if let Var::Anonymous(_) = a1 {
-                    captured_args.push(ix);
-                    return true;
-                } else {
-                    return a1 == a2;
-                }
-            });
+            .any(|and_chain| and_chain.iter().any(|atom| atom == search_for))
+    }
+}
 
-        if matches {
-            return Some(captured_args);
-        } else {
-            return None;
+impl Atom {
+    fn pin_var(&mut self, to_pin: Ident, pin_to: Ident) {
+        match self {
+            Self::Predicate(_, args) => {
+                for arg in args {
+                    if let Var::Anonymous(ident) = arg {
+                        if ident == &to_pin {
+                            *arg = Var::Fixed(pin_to);
+                        }
+                    }
+                }
+            }
+            _ => {} // only pin predicate args
         }
     }
 }

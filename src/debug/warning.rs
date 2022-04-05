@@ -1,5 +1,9 @@
+//! Defines different warnings thrown during execution
+//! Warnings are recoverable, meaning they are shown to the user
+//! but don't affect execution of the program.
+
 use crate::diagnostics::{Annotation, AnnotationType, Diagnostic};
-use crate::parser::span::{Span, Spanned};
+use crate::parser::span::Span;
 
 pub enum Warning {
     DuplicateScopedVariable {

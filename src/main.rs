@@ -16,7 +16,7 @@ use std::fs;
 use termcolor::{ColorChoice, StandardStream};
 
 fn main() {
-    // panic::init(); // Initialize custom panic handler
+    panic::init(); // Initialize custom panic handler
 
     if let Some(options) = cli::Options::from_args() {
         let colors = if options.no_color {

@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 const HELP: &'static str = "
 USAGE:
@@ -16,7 +16,11 @@ ARGS:
 ";
 
 fn info() -> String {
-    format!("Leuchtkraft version {}\nMaintained by {}", env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"))
+    format!(
+        "Leuchtkraft version {}\nMaintained by {}",
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS")
+    )
 }
 
 pub struct Options {

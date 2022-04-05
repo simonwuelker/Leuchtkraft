@@ -5,7 +5,6 @@ use crate::interpreter::Ident;
 pub enum Line {
     Forall(Vec<Ident>),
     Rule(bool, Vec<Vec<Atom>>),
-    Empty,
 }
 
 #[derive(PartialEq)]

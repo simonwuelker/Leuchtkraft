@@ -9,17 +9,6 @@ pub struct TokenNotFound {
 }
 
 impl TokenNotFound {
-    pub fn new(pos: usize, expected: Vec<Token>) -> Self {
-        Self {
-            position: pos,
-            expected: expected,
-        }
-    }
-
-    pub fn position(&self) -> usize {
-        self.position
-    }
-
     pub fn join_raw(&mut self, other: (usize, Token)) {
         if self.position < other.0 {
             self.position = other.0;

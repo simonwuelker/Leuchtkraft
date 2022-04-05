@@ -1,6 +1,7 @@
 //! Leuchtkraft's underlying logic engine
-pub type Ident = String;
 
-pub mod atom;
-pub mod clause;
-pub mod logic_engine;
+mod atom;
+mod logic_engine;
+
+pub use atom::{Atom, Clause, Var};
+pub use logic_engine::LogicEngine;
