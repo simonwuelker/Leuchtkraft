@@ -1,5 +1,6 @@
 //! Higher-level tokens
 
+use super::span::Spanned;
 use crate::interpreter::Ident;
 
 pub enum Line {

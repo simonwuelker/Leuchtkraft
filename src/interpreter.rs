@@ -24,7 +24,7 @@ impl Interpreter {
     }
 
     /// Resolve any free variables
-    fn symbol_to_clause(&self, and_chains: Vec<Vec<AtomSymbol>>) -> (Clause, bool) {
+    fn symbol_to_clause(&self, and_chains: Vec<Vec<AtomSymbol>>) -> (Clause<Var>, bool) {
         let mut is_question = false;
         let clause_raw = and_chains
             .into_iter()
