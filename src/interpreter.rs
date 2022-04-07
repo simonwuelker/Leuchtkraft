@@ -1,16 +1,15 @@
 use crate::debug::error::Error;
 use crate::debug::warning::Warning;
 use crate::diagnostics::Diagnostic;
-use crate::logic::{Atom, Clause, LogicEngine, Var};
+use crate::logic::{Atom, Clause, Ident, LogicEngine, Var};
 use crate::parser::parser::Parser;
+use crate::parser::span::{Span, Spanned};
 use crate::parser::symbol::{Atom as AtomSymbol, Line};
-
-/// Idents are hashed variable names
-pub type Ident = u64;
+use crate::util::calculate_hash;
 
 pub struct Interpreter {
     inside_scopeblock: bool,
-    anon_vars: Vec<Ident>,
+    free_vars: Vec<Ident>,
     logic_engine: LogicEngine,
 }
 
@@ -18,90 +17,159 @@ impl Interpreter {
     pub fn new() -> Self {
         Self {
             inside_scopeblock: false,
-            anon_vars: vec![],
+            free_vars: vec![],
             logic_engine: LogicEngine::default(),
         }
     }
 
     /// Resolve any free variables
-    fn symbol_to_clause(&self, and_chains: Vec<Vec<AtomSymbol>>) -> (Clause<Var>, bool) {
-        let mut is_question = false;
-        let clause_raw = and_chains
+    fn symbol_to_clause<T, E>(
+        &self,
+        and_chains: Vec<Vec<Spanned<AtomSymbol>>>,
+    ) -> Result<Clause<T>, Error>
+    where
+        T: TryFrom<Var, Error = E> + PartialEq,
+    {
+        let clause_raw: Result<Vec<Vec<Atom<T>>>, Error> = and_chains
             .into_iter()
             .map(|and_chain| {
                 and_chain
                     .into_iter()
                     .map(|atom| {
-                        match atom {
-                            AtomSymbol::True => Atom::Boolean(true),
-                            AtomSymbol::False => Atom::Boolean(false),
+                        match atom.as_inner() {
+                            AtomSymbol::True => Ok(Atom::Boolean(true)),
+                            AtomSymbol::False => Ok(Atom::Boolean(false)),
                             AtomSymbol::Predicate(name, args) => {
                                 // Check if the args were freed using a forall statement
-                                let checked_args = args
+                                let checked_args: Result<Vec<T>, Error> = args
                                     .into_iter()
+                                    .map(|ident_str| str_to_ident(ident_str))
                                     .map(|arg| {
-                                        if self.anon_vars.contains(&arg) {
+                                        if self.free_vars.contains(&arg) {
                                             Var::Anonymous(arg)
                                         } else {
                                             Var::Fixed(arg)
                                         }
                                     })
+                                    .map(T::try_from)
+                                    .map(|result| {
+                                        result.map_err(|err| {
+                                            Error::FreedVarInQuestion {
+                                                span: atom.span(), // close enough
+                                            }
+                                        })
+                                    })
                                     .collect();
-                                Atom::Predicate(name, checked_args)
+                                Ok(Atom::Predicate(str_to_ident(name), checked_args?))
                             }
-                            AtomSymbol::Unknown(ident) => {
-                                is_question = true;
-                                Atom::Unknown(ident)
-                            }
+                            AtomSymbol::Unknown(ident) => Ok(Atom::Unknown(str_to_ident(ident))),
                         }
                     })
                     .collect()
             })
             .collect();
-        (Clause::new(clause_raw), is_question)
+
+        clause_raw.map(|and_chain| Clause::new(and_chain))
     }
 
     pub fn execute<'a>(
         &mut self,
         line: &'a str,
-    ) -> (Vec<Warning>, Result<Option<String>, Diagnostic<'a>>) {
-        let mut warnings = vec![];
-
+        warnings: &mut Vec<Warning>,
+    ) -> Result<Option<String>, Diagnostic<'a>> {
         // Parse the line
         let parser = Parser::new(line);
-        match parser.line(&mut warnings) {
-            Ok(line_content) => {
-                if let Some(parsed_line) = line_content {
-                    match parsed_line.into_inner() {
-                        Line::Forall(free_vars) => {
-                            self.inside_scopeblock = true;
-                            self.anon_vars = free_vars.to_vec();
+        let line_content = parser
+            .line(warnings)
+            .map_err(|err| Diagnostic::from((err, line)))?;
+        if let Some(parsed_line) = line_content {
+            let line_span = parsed_line.span();
+            match parsed_line.into_inner() {
+                Line::Forall(free_vars) => {
+                    self.inside_scopeblock = true;
+                    self.free_vars = free_vars
+                        .into_iter()
+                        .map(|spanned| spanned.into_inner())
+                        .map(|ident_str| str_to_ident(ident_str))
+                        .collect();
+                }
+                Line::Rule(is_indented, is_question, and_chains) => {
+                    // Check indentation level
+                    match (self.inside_scopeblock, is_indented) {
+                        (true, true) => {}
+                        (true, false) => self.inside_scopeblock = false,
+                        (false, true) => {
+                            return Err(Diagnostic::from((Error::UnexpectedIndent, line)));
                         }
-                        Line::Rule(is_indented, and_chains) => {
-                            match (self.inside_scopeblock, is_indented) {
-                                (true, true) => {}
-                                (true, false) => self.inside_scopeblock = false,
-                                (false, true) => {
-                                    return (
-                                        warnings,
-                                        Err(Diagnostic::from((&Error::UnexpectedIndent, line))),
-                                    );
-                                }
-                                (false, false) => {}
-                            }
-                            let (clause, is_question) = self.symbol_to_clause(and_chains);
+                        (false, false) => {}
+                    }
 
-                            if is_question {
-                                self.logic_engine.resolve(clause);
-                            } else {
-                                self.logic_engine.add(clause);
-                            }
-                        }
+                    // Run some general checks on the clause
+                    // (these checks only throw warnings, no errors)
+                    sanity_check_clause(&and_chains, line_span, warnings);
+
+                    if is_question {
+                        let question: Clause<Ident> = self
+                            .symbol_to_clause(and_chains)
+                            .map_err(|err| Diagnostic::from((err, line)))?;
+                    } else {
+                        let clause: Clause<Var> = self
+                            .symbol_to_clause(and_chains)
+                            .map_err(|err| Diagnostic::from((err, line)))?;
                     }
                 }
-                (warnings, Ok(None))
             }
-            Err(error) => (warnings, Err(Diagnostic::from((error, line)))),
         }
+        Ok(None)
+    }
+}
+
+fn str_to_ident(ident_str: &str) -> Ident {
+    calculate_hash(&ident_str)
+}
+
+fn sanity_check_clause(
+    atoms: &Vec<Vec<Spanned<AtomSymbol>>>,
+    clause_span: Span,
+    warnings: &mut Vec<Warning>,
+) {
+    // Perform some sanity checks and generate warnings
+    let mut contains_non_literal = false;
+    atoms.iter().enumerate().for_each(|(block_ix, and_chain)| {
+        // Check for redundant trues (x and true => y)
+        if let Some(true_symbol) = and_chain
+            .iter()
+            .find(|atom| atom.as_inner() == &AtomSymbol::True)
+        {
+            if and_chain.len() != 1 {
+                warnings.push(Warning::RedundantTrue {
+                    span: true_symbol.span(),
+                });
+            }
+        }
+
+        // Check for nullifying falses
+        if let Some(false_symbol) = and_chain
+            .iter()
+            .find(|atom| atom.as_inner() == &AtomSymbol::False)
+        {
+            if and_chain.len() != 1 {
+                warnings.push(Warning::NullifyingFalse {
+                    span: false_symbol.span(),
+                });
+            } else if and_chain.len() == 1 && block_ix != atoms.len() - 1 {
+                warnings.push(Warning::RedundantFalse {
+                    span: false_symbol.span(),
+                });
+            }
+        }
+
+        contains_non_literal |= and_chain
+            .iter()
+            .find(|atom| !atom.as_inner().is_literal())
+            .is_some();
+    });
+    if !contains_non_literal {
+        warnings.push(Warning::PurelyLiteralClause { span: clause_span });
     }
 }

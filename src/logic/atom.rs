@@ -1,4 +1,4 @@
-use crate::interpreter::Ident;
+use super::Ident;
 
 #[derive(Debug, Clone, PartialEq)]
 /// The smallest (atomic) operand in a logical formula.
@@ -72,6 +72,17 @@ impl Atom<Var> {
                 }
             }
             _ => None,
+        }
+    }
+}
+
+impl TryFrom<Var> for Ident {
+    type Error = ();
+
+    fn try_from(from: Var) -> Result<Ident, Self::Error> {
+        match from {
+            Var::Fixed(ident) => Ok(ident),
+            Var::Anonymous(_) => Err(()),
         }
     }
 }

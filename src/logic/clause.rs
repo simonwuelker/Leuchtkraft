@@ -1,5 +1,4 @@
-use super::{Atom, Var};
-use crate::interpreter::Ident;
+use super::{Atom, Ident, Var};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Clause<T: PartialEq>(pub Vec<Vec<Atom<T>>>);

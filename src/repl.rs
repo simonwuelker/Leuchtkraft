@@ -60,7 +60,8 @@ where
 {
     for (ix, line) in source.enumerate() {
         let lineno = ix + 1;
-        let (warnings, result) = i.execute(&line);
+        let mut warnings = vec![];
+        let result = i.execute(&line, &mut warnings);
 
         // Print all the warnings
         warnings

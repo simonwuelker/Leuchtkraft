@@ -1,22 +1,22 @@
 //! Higher-level tokens
 
 use super::span::Spanned;
-use crate::interpreter::Ident;
 
-pub enum Line {
-    Forall(Vec<Ident>),
-    Rule(bool, Vec<Vec<Atom>>),
+pub enum Line<'a> {
+    Forall(Vec<Spanned<&'a str>>),
+    /// (is_indented, is_question, and_chains)
+    Rule(bool, bool, Vec<Vec<Spanned<Atom<'a>>>>),
 }
 
 #[derive(PartialEq)]
-pub enum Atom {
+pub enum Atom<'a> {
     True,
     False,
-    Predicate(Ident, Vec<Ident>),
-    Unknown(Ident),
+    Predicate(&'a str, Vec<&'a str>),
+    Unknown(&'a str),
 }
 
-impl Atom {
+impl Atom<'_> {
     pub fn is_literal(&self) -> bool {
         match self {
             Atom::True | Atom::False => true,

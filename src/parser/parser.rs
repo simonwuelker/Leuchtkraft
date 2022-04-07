@@ -6,7 +6,6 @@ use super::symbol::{Atom, Line};
 use super::token::Token;
 use super::tokenizer::Tokenizer;
 use crate::debug::warning::Warning;
-use crate::util::calculate_hash;
 
 /// A data structure that creates a program from tokens
 ///
@@ -143,13 +142,7 @@ impl<'a> Parser<'a> {
 
         self.line_end(&mut pos)?;
 
-        // Remove source code annotations
-        let idents_clean = idents
-            .into_iter()
-            .map(|x| x.into_inner())
-            .map(|x| calculate_hash(&x))
-            .collect();
-        let forall = Spanned::new(Line::Forall(idents_clean), Span(start_pos, end_pos));
+        let forall = Spanned::new(Line::Forall(idents), Span(start_pos, end_pos));
         Ok(forall)
     }
 
@@ -161,8 +154,9 @@ impl<'a> Parser<'a> {
         warnings: &mut Vec<Warning>,
     ) -> Result<Spanned<Line>, TokenNotFound> {
         let is_indented = self.expect(&mut pos, Token::Indent).is_ok();
+        let mut is_question = false;
 
-        let first_atom = self.read_atom(&mut pos, warnings)?;
+        let first_atom = self.read_atom(&mut pos, &mut is_question, warnings)?;
         let start = first_atom.span().0;
 
         let mut atoms = vec![vec![first_atom]];
@@ -186,62 +180,17 @@ impl<'a> Parser<'a> {
                 Token::End | Token::Comment => break connector.span().0,
                 _ => unreachable!(),
             }
+
             atoms
                 .last_mut()
                 .unwrap()
-                .push(self.read_atom(&mut pos, warnings)?);
+                .push(self.read_atom(&mut pos, &mut is_question, warnings)?);
         };
 
-        // Perform some sanity checks and generate warnings
-        let mut contains_non_literal = false;
-        atoms.iter().enumerate().for_each(|(block_ix, and_chain)| {
-            // Check for redundant trues (x and true => y)
-            if let Some(true_symbol) = and_chain.iter().find(|atom| atom.as_inner() == &Atom::True)
-            {
-                if and_chain.len() != 1 {
-                    warnings.push(Warning::RedundantTrue {
-                        span: true_symbol.span(),
-                    });
-                }
-            }
-
-            // Check for nullifying falses
-            if let Some(false_symbol) = and_chain
-                .iter()
-                .find(|atom| atom.as_inner() == &Atom::False)
-            {
-                if and_chain.len() != 1 {
-                    warnings.push(Warning::NullifyingFalse {
-                        span: false_symbol.span(),
-                    });
-                } else if and_chain.len() == 1 && block_ix != atoms.len() - 1 {
-                    warnings.push(Warning::RedundantFalse {
-                        span: false_symbol.span(),
-                    });
-                }
-            }
-
-            contains_non_literal |= and_chain
-                .iter()
-                .find(|atom| !atom.as_inner().is_literal())
-                .is_some();
-        });
-
-        // remove atom annotations
-        let atoms_clean = atoms
-            .into_iter()
-            .map(|and_chain| {
-                and_chain
-                    .into_iter()
-                    .map(|atom| atom.into_inner())
-                    .collect()
-            })
-            .collect();
-        let rule = Spanned::new(Line::Rule(is_indented, atoms_clean), Span(start, end));
-
-        if !contains_non_literal {
-            warnings.push(Warning::PurelyLiteralClause { span: rule.span() });
-        }
+        let rule = Spanned::new(
+            Line::Rule(is_indented, is_question, atoms),
+            Span(start, end),
+        );
 
         Ok(rule)
     }
@@ -249,6 +198,7 @@ impl<'a> Parser<'a> {
     fn read_atom(
         &self,
         pos: &mut usize,
+        is_question: &mut bool,
         _warnings: &mut Vec<Warning>,
     ) -> Result<Spanned<Atom>, TokenNotFound> {
         let found = self.expect_either(pos, vec![Token::True, Token::False, Token::Ident])?;
@@ -256,13 +206,14 @@ impl<'a> Parser<'a> {
             Token::True => Ok(found.map(Atom::True)),
             Token::False => Ok(found.map(Atom::False)),
             Token::Ident => {
-                let ident = calculate_hash(&self.read_span(found.span()));
+                let ident = self.read_span(found.span());
 
                 let after_ident =
                     self.expect_either(pos, vec![Token::OpeningParen, Token::Questionmark])?;
                 match after_ident.as_inner() {
                     Token::Questionmark => {
                         let atom = Atom::Unknown(ident);
+                        *is_question = true;
                         Ok(Spanned::new(
                             atom,
                             Span(found.span().0, after_ident.span().1),
@@ -270,12 +221,12 @@ impl<'a> Parser<'a> {
                     }
                     Token::OpeningParen => {
                         // Read the functions arguments
-                        let mut ident_strs = vec![];
+                        let mut idents = vec![];
                         let first =
                             self.expect_either(pos, vec![Token::Ident, Token::ClosingParen])?;
                         let symbol_end = match first.as_inner() {
                             Token::Ident => {
-                                ident_strs.push(self.read_span(first.span()));
+                                idents.push(self.read_span(first.span()));
                                 loop {
                                     let next = self.expect_either(
                                         pos,
@@ -284,7 +235,7 @@ impl<'a> Parser<'a> {
                                     match next.as_inner() {
                                         Token::Comma => {
                                             let arg = self.expect(pos, Token::Ident)?;
-                                            ident_strs.push(self.read_span(arg.span()));
+                                            idents.push(self.read_span(arg.span()));
                                         }
                                         Token::ClosingParen => break next.span().1,
                                         _ => unreachable!("{:?}", next.as_inner()),
@@ -295,7 +246,6 @@ impl<'a> Parser<'a> {
                             _ => unreachable!("{:?}", first.as_inner()),
                         };
 
-                        let idents = ident_strs.iter().map(|i| calculate_hash(i)).collect();
                         let atom = Atom::Predicate(ident, idents);
                         Ok(Spanned::new(atom, Span(found.span().0, symbol_end)))
                     }

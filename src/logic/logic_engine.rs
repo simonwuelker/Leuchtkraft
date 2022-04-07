@@ -1,5 +1,4 @@
-use super::{Atom, Clause, Var};
-use crate::interpreter::Ident;
+use super::{Atom, Clause, Ident, Var};
 
 pub struct LogicEngine {
     known_clauses: Vec<Clause<Var>>,
@@ -34,7 +33,7 @@ impl LogicEngine {
     fn find_related_clauses(&self, from: Clause<Ident>, already_found: &mut Vec<Clause<Var>>) {
         for atom in from.0.iter().flatten() {
             if let Atom::Predicate(ident, args) = atom {
-                for known_clause in self.known_clauses {
+                for known_clause in &self.known_clauses {
                     known_clause.matches((&ident, args), already_found);
                 }
             }
