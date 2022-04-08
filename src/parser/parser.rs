@@ -226,7 +226,7 @@ impl<'a> Parser<'a> {
                             self.expect_either(pos, vec![Token::Ident, Token::ClosingParen])?;
                         let symbol_end = match first.as_inner() {
                             Token::Ident => {
-                                idents.push(self.read_span(first.span()));
+                                idents.push(first.map(self.read_span(first.span())));
                                 loop {
                                     let next = self.expect_either(
                                         pos,
@@ -235,7 +235,7 @@ impl<'a> Parser<'a> {
                                     match next.as_inner() {
                                         Token::Comma => {
                                             let arg = self.expect(pos, Token::Ident)?;
-                                            idents.push(self.read_span(arg.span()));
+                                            idents.push(arg.map(self.read_span(arg.span())));
                                         }
                                         Token::ClosingParen => break next.span().1,
                                         _ => unreachable!("{:?}", next.as_inner()),

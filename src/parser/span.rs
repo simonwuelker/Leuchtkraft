@@ -43,3 +43,9 @@ impl From<usize> for Span {
         Self(from, from + 1)
     }
 }
+
+impl<T: PartialEq> PartialEq for Spanned<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.content == other.content
+    }
+}

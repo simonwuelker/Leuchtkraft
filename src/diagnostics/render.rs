@@ -18,16 +18,6 @@ pub fn annotation_color(annotation_type: &AnnotationType) -> ColorSpec {
     spec
 }
 
-pub fn annotation_name(annotation_type: &AnnotationType) -> &'static str {
-    match annotation_type {
-        AnnotationType::Error => "error",
-        AnnotationType::Warning => "warning",
-        AnnotationType::Info => "info",
-        AnnotationType::Note => "note",
-        AnnotationType::Help => "help",
-    }
-}
-
 pub trait DisplayDiagnostic {
     fn render(
         &mut self,
@@ -47,7 +37,7 @@ impl<W: WriteColor> DisplayDiagnostic for W {
         // ================= Diagnostic Message ===========
         // "Error[001]: Forgot to implement the important thing
         self.set_color(annotation_color(&diagnostic.annotation_type).set_bold(true))?;
-        write!(self, "{}", annotation_name(&diagnostic.annotation_type))?;
+        write!(self, "{}", diagnostic.annotation_type)?;
 
         if let Some(code) = diagnostic.code {
             write!(self, "[{:03}]", code)?;
@@ -87,7 +77,11 @@ impl<W: WriteColor> DisplayDiagnostic for W {
             write!(self, "{} | ", " ".repeat(lineno_len))?;
 
             self.set_color(&annotation_color(&annotation.annotation_type))?;
-            write!(self, "{}", " ".repeat(annotation.span.0))?;
+            write!(
+                self,
+                "{}",
+                " ".repeat(diagnostic.buffer[..annotation.span.0].len())
+            )?;
             write!(
                 self,
                 "{}-- ",

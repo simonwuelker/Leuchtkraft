@@ -17,14 +17,14 @@ impl<'a> From<(Error, &'a str)> for Diagnostic<'a> {
             Error::FreedVarInQuestion { span } => vec![Annotation {
                 annotation_type: AnnotationType::Info,
                 span: span,
-                msg: format!("{} was previously freed", &other.1[span.0..span.1]),
+                msg: format!("{:?} was previously freed", &other.1[span.0..span.1]),
             }],
         };
 
         let msg = match other.0 {
             Error::UnexpectedIndent => "Unexpected indentation level".to_owned(),
             Error::FreedVarInQuestion { span } => format!(
-                "{} is a free variable and may not be used in a question",
+                "{:?} is a free variable and may not be used in a question",
                 &other.1[span.0..span.1]
             ),
         };

@@ -13,7 +13,7 @@ pub enum Atom<T: PartialEq> {
 /// Objects that can be passed as arguments to predicates
 pub enum Var {
     Fixed(Ident),
-    Anonymous(Ident),
+    Free(Ident),
 }
 
 impl Atom<Var> {
@@ -21,7 +21,7 @@ impl Atom<Var> {
         match self {
             Self::Predicate(_, args) => {
                 for arg in args {
-                    if let Var::Anonymous(ident) = arg {
+                    if let Var::Free(ident) = arg {
                         if ident == &to_pin {
                             *arg = Var::Fixed(pin_to);
                         }
@@ -40,7 +40,7 @@ impl Atom<Var> {
             Atom::Predicate(ident, args) => {
                 // Predicate name and number of args must be equal
                 if ident == predicate.0 && args.len() == predicate.1.len() {
-                    let mut anon_arg_map = vec![];
+                    let mut free_arg_map = vec![];
                     // For each argument, check if that argument is either
                     // the same literal value,
                     // or a free variable that can be pinned to the literal
@@ -51,10 +51,10 @@ impl Atom<Var> {
                                     return None;
                                 }
                             }
-                            Var::Anonymous(anon_ident) => {
+                            Var::Free(anon_ident) => {
                                 // Check if that free ident has previously been pinned
                                 // to another variable
-                                if anon_arg_map
+                                if free_arg_map
                                     .iter()
                                     .any(|(from, to)| from == anon_ident && to != arg_2)
                                 {
@@ -62,11 +62,11 @@ impl Atom<Var> {
                                 }
 
                                 // Pin that free ident to the args value
-                                anon_arg_map.push((*anon_ident, *arg_2));
+                                free_arg_map.push((*anon_ident, *arg_2));
                             }
                         }
                     }
-                    Some(anon_arg_map)
+                    Some(free_arg_map)
                 } else {
                     None
                 }
@@ -82,7 +82,7 @@ impl TryFrom<Var> for Ident {
     fn try_from(from: Var) -> Result<Ident, Self::Error> {
         match from {
             Var::Fixed(ident) => Ok(ident),
-            Var::Anonymous(_) => Err(()),
+            Var::Free(_) => Err(()),
         }
     }
 }

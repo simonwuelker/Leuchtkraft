@@ -12,7 +12,7 @@ pub enum Line<'a> {
 pub enum Atom<'a> {
     True,
     False,
-    Predicate(&'a str, Vec<&'a str>),
+    Predicate(&'a str, Vec<Spanned<&'a str>>),
     Unknown(&'a str),
 }
 

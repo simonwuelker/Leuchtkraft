@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[allow(dead_code)] // Some annotation types won't be used until later
 /// Different types of annotations, usually only distinguishable by Color
 pub enum AnnotationType {
@@ -35,4 +37,17 @@ pub enum AnnotationType {
     /// ^-- try removing this implication
     /// ```
     Help,
+}
+
+impl fmt::Display for AnnotationType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let txt = match self {
+            AnnotationType::Error => "error",
+            AnnotationType::Warning => "warning",
+            AnnotationType::Info => "info",
+            AnnotationType::Note => "note",
+            AnnotationType::Help => "help",
+        };
+        write!(f, "{}", txt)
+    }
 }

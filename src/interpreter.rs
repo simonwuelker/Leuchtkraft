@@ -23,12 +23,12 @@ impl Interpreter {
     }
 
     /// Resolve any free variables
-    fn symbol_to_clause<T, E>(
+    fn symbol_to_clause<T>(
         &self,
         and_chains: Vec<Vec<Spanned<AtomSymbol>>>,
     ) -> Result<Clause<T>, Error>
     where
-        T: TryFrom<Var, Error = E> + PartialEq,
+        T: TryFrom<Var> + PartialEq,
     {
         let clause_raw: Result<Vec<Vec<Atom<T>>>, Error> = and_chains
             .into_iter()
@@ -43,21 +43,18 @@ impl Interpreter {
                                 // Check if the args were freed using a forall statement
                                 let checked_args: Result<Vec<T>, Error> = args
                                     .into_iter()
-                                    .map(|ident_str| str_to_ident(ident_str))
-                                    .map(|arg| {
-                                        if self.free_vars.contains(&arg) {
-                                            Var::Anonymous(arg)
-                                        } else {
-                                            Var::Fixed(arg)
-                                        }
+                                    .map(|ident_str| {
+                                        ident_str.map(str_to_ident(ident_str.as_inner()))
                                     })
-                                    .map(T::try_from)
-                                    .map(|result| {
-                                        result.map_err(|err| {
-                                            Error::FreedVarInQuestion {
-                                                span: atom.span(), // close enough
-                                            }
-                                        })
+                                    .map(|arg| {
+                                        let span = arg.span();
+                                        let var = if self.free_vars.contains(arg.as_inner()) {
+                                            Var::Free(arg.into_inner())
+                                        } else {
+                                            Var::Fixed(arg.into_inner())
+                                        };
+                                        T::try_from(var)
+                                            .map_err(|_| Error::FreedVarInQuestion { span: span })
                                     })
                                     .collect();
                                 Ok(Atom::Predicate(str_to_ident(name), checked_args?))
@@ -96,12 +93,11 @@ impl Interpreter {
                 Line::Rule(is_indented, is_question, and_chains) => {
                     // Check indentation level
                     match (self.inside_scopeblock, is_indented) {
-                        (true, true) => {}
                         (true, false) => self.inside_scopeblock = false,
                         (false, true) => {
                             return Err(Diagnostic::from((Error::UnexpectedIndent, line)));
                         }
-                        (false, false) => {}
+                        _ => {}
                     }
 
                     // Run some general checks on the clause
@@ -113,6 +109,8 @@ impl Interpreter {
                             .symbol_to_clause(and_chains)
                             .map_err(|err| Diagnostic::from((err, line)))?;
                     } else {
+                        // Can never fail but lets handle the error
+                        // anyways, for clarity
                         let clause: Clause<Var> = self
                             .symbol_to_clause(and_chains)
                             .map_err(|err| Diagnostic::from((err, line)))?;

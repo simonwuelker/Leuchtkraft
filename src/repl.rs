@@ -58,9 +58,13 @@ where
     I: Iterator<Item = String>,
     W: termcolor::WriteColor,
 {
-    for (ix, line) in source.enumerate() {
+    for (ix, mut line) in source.enumerate() {
         let lineno = ix + 1;
         let mut warnings = vec![];
+
+        // tabs only mess up formatting later
+        line = line.replace("\t", "    ");
+
         let result = i.execute(&line, &mut warnings);
 
         // Print all the warnings
