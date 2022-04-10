@@ -108,12 +108,14 @@ impl Interpreter {
                         let question: Clause<Ident> = self
                             .symbol_to_clause(and_chains)
                             .map_err(|err| Diagnostic::from((err, line)))?;
+                        self.logic_engine.resolve(question);
                     } else {
                         // Can never fail but lets handle the error
                         // anyways, for clarity
                         let clause: Clause<Var> = self
                             .symbol_to_clause(and_chains)
                             .map_err(|err| Diagnostic::from((err, line)))?;
+                        self.logic_engine.add(clause);
                     }
                 }
             }
@@ -123,7 +125,7 @@ impl Interpreter {
 }
 
 fn str_to_ident(ident_str: &str) -> Ident {
-    calculate_hash(&ident_str)
+    Ident(calculate_hash(&ident_str))
 }
 
 fn sanity_check_clause(

@@ -2,11 +2,10 @@
 
 mod atom;
 mod clause;
+mod graph;
 mod logic_engine;
 
-pub use atom::{Atom, Var};
+pub use atom::{Atom, Ident, Var};
 pub use clause::Clause;
+pub use graph::*;
 pub use logic_engine::LogicEngine;
-
-/// Idents are hashed variable names
-pub type Ident = u64;
