@@ -2,7 +2,7 @@ use super::span::{Span, Spanned};
 use super::token::Token;
 
 /// A tokenizer that converts an input stream of bytes into an output
-/// stream of tokens, received via the [read_next_token] function.
+/// stream of tokens.
 pub struct Tokenizer<'a> {
     buffer: &'a str,
 }

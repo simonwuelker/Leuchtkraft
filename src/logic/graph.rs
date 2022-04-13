@@ -5,13 +5,13 @@ use std::fmt;
 
 use super::{Atom, Clause, Resolution, UnknownValue, Var};
 
-/// Index into [Graph::atoms]
+/// Index into [ImplicationGraph::atoms]
 pub type AtomIndex = usize;
 
-/// Index into [Graph::nodes] pub type NodeIndex = usize;
+/// Index into [ImplicationGraph::nodes]
 pub type NodeIndex = usize;
 
-/// Index into [Graph::edges]
+/// Index into [ImplicationGraph::edges]
 pub type EdgeIndex = usize;
 
 /// Implication Graph

@@ -28,7 +28,13 @@ fn main() {
 
         let mut i = Interpreter::new();
         if let Some(filename) = options.file_name {
-            let file = fs::read_to_string(&filename).unwrap();
+            let file = match fs::read_to_string(&filename) {
+                Ok(file) => file,
+                Err(e) => {
+                    println!("Could not read {}:\n{:?}", filename.display(), e);
+                    return;
+                }
+            };
 
             run_repl(
                 &mut i,

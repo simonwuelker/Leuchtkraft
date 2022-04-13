@@ -1,6 +1,6 @@
 # Leuchtkraft
-Leuchtkraft is my tiny, declarative Programming Language.
-
+Leuchtkraft is my tiny, declarative Programming Language with absolutely minimal
+dependencies.
 A basic Leuchtkraft program might look like this:
 ```
 // Logic Clauses
@@ -20,11 +20,28 @@ Y? => canfly(mary) => Y? // Indeterminate (mary's health is unknown)
 Z? => canfly(jane) => Z? // True (jane is a healthy bird)
 ```
 
+Check out [my blog post](https://wuelle.dev/blog/posts/leuchtkraft/) for more
+information on how to use leuchtkraft.
+
+## Installation
+### From crates.io
+```
+cargo install leuchtkraft
+```
+### From source
+```
+git clone https://github.com/Wuelle/Leuchtkraft
+cd Leuchtkraft
+cargo install --path .
+```
+
+Execute `leuchtkraft --help` for basic usage information.
+
 ## Road Map
 In order or priority: 
 - [x] Custom zero-clone parser
 - [x] Logic resolver
-- [x] Great build warnings/errors
+- [x] Awesome build warnings/errors
 - [ ] WASM app for testing
 - [x] REPL
 - [ ] Var-level unknowns (`canfly(X?)`)

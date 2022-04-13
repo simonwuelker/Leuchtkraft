@@ -3,6 +3,7 @@ name = "leuchtkraft"
 version = "0.1.0"
 edition = "2021"
 authors = ["Alaska"]
+license = "MIT"
 description = "A logical programming language"
 repository = "https://github.com/Wuelle/Leuchtkraft"
 
