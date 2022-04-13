@@ -108,7 +108,8 @@ impl Interpreter {
                         let question: Clause<Ident> = self
                             .symbol_to_clause(and_chains)
                             .map_err(|err| Diagnostic::from((err, line)))?;
-                        self.logic_engine.resolve(question);
+                        let resolvents = self.logic_engine.resolve(question);
+                        return Ok(Some(format!("resolved to {:?}", resolvents)));
                     } else {
                         // Can never fail but lets handle the error
                         // anyways, for clarity

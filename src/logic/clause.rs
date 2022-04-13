@@ -9,10 +9,20 @@ impl<T: PartialEq> Clause<T> {
         Self(and_chains)
     }
 
-    pub fn contains(&self, search_for: &Atom<T>) -> bool {
-        self.0
-            .iter()
-            .any(|and_chain| and_chain.iter().any(|atom| atom == search_for))
+    /// Get all the unknowns in the clause
+    pub fn unknowns(&self) -> Vec<Ident> {
+        let mut unknowns = vec![];
+        for atom in self.0.iter().flatten() {
+            match atom {
+                Atom::Unknown(ident) => {
+                    if !unknowns.contains(ident) {
+                        unknowns.push(*ident);
+                    }
+                }
+                _ => {}
+            }
+        }
+        unknowns
     }
 }
 
@@ -29,12 +39,10 @@ impl Clause<Ident> {
 
 impl Clause<Var> {
     /// Pin all occurences of an anonymous var to a fixed var
-    pub fn pin(&self, to_pin: Ident, pin_to: Ident) -> Self {
-        let mut cloned = self.clone();
-        for atom in &mut cloned.0.iter_mut().flatten() {
+    pub fn pin(&mut self, to_pin: Ident, pin_to: Ident) {
+        for atom in self.0.iter_mut().flatten() {
             atom.pin_var(to_pin, pin_to);
         }
-        cloned
     }
 
     /// Return a list of clauses representing the different possibilities how
@@ -43,7 +51,8 @@ impl Clause<Var> {
     /// # Example
     /// `foo(a, A) => bar(A, B)` (`A` and `B` are free vars) formatted with `foo(a, x)`
     /// produces `foo(a, x) => bar(x, B)`
-    pub fn matches(&self, predicate: (&Ident, &Vec<Var>), pin_variants: &mut Vec<Self>) {
+    pub fn matches(&self, predicate: (&Ident, &Vec<Var>)) -> Vec<Self> {
+        let mut pin_variants = vec![];
         for atom in self.0.iter().flatten() {
             match atom.match_predicate(predicate) {
                 Some(argmap) => {
@@ -58,6 +67,7 @@ impl Clause<Var> {
                 None => {}
             }
         }
+        pin_variants
     }
 }
 

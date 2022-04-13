@@ -8,4 +8,4 @@ mod logic_engine;
 pub use atom::{Atom, Ident, Var};
 pub use clause::Clause;
 pub use graph::*;
-pub use logic_engine::LogicEngine;
+pub use logic_engine::{LogicEngine, Resolution, UnknownValue};

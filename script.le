@@ -11,5 +11,5 @@ true => healthy(jane) // jane is healthy
 
 // Conclusions
 X? => canfly(john) => X? // False (john is not a healthy bird)
-// Y? => canfly(mary) => Y? // Indeterminate (mary's health is unknown)
-// Z? => canfly(jane) => Z? // True (jane is a healthy bird)
+Y? => canfly(mary) => Y? // Indeterminate (mary's health is unknown)
+Z? => canfly(jane) => Z? // True (jane is a healthy bird)

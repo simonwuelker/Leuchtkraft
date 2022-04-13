@@ -21,6 +21,7 @@ pub enum Var {
 }
 
 impl Atom<Var> {
+    /// Pin free arguments in predicates to a fixed one
     pub fn pin_var(&mut self, to_pin: Ident, pin_to: Ident) {
         match self {
             Self::Predicate(_, args) => {
@@ -51,7 +52,7 @@ impl Atom<Var> {
                     for (arg, arg_2) in args.iter().zip(predicate.1) {
                         match (arg, arg_2) {
                             (Var::Fixed(ident_1), Var::Fixed(ident_2)) => {
-                                if ident_2 != ident_2 {
+                                if ident_1 != ident_2 {
                                     return None;
                                 }
                             }
@@ -69,7 +70,7 @@ impl Atom<Var> {
                                 free_arg_map.push((*free_ident, *ident_2));
                             }
                             (Var::Free(_), Var::Free(_)) => {} // no action required
-                            (Var::Fixed(ident_2), Var::Free(free_ident_2)) => {}
+                            (Var::Fixed(_), Var::Free(_)) => {}
                         }
                     }
                     Some(free_arg_map)
