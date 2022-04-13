@@ -1,5 +1,5 @@
 # Leuchtkraft
-Leuchtkraft is my tiny, declarative Programming Language with absolutely minimal
+Leuchtkraft is a declarative logical Programming Language with absolutely minimal
 dependencies.
 A basic Leuchtkraft program might look like this:
 ```
@@ -21,7 +21,7 @@ Z? => canfly(jane) => Z? // True (jane is a healthy bird)
 ```
 
 Check out [my blog post](https://wuelle.dev/blog/posts/leuchtkraft/) for more
-information on how to use leuchtkraft.
+information on how to use Leuchtkraft.
 
 ## Installation
 ### From crates.io
@@ -51,7 +51,7 @@ In order or priority:
 ## Syntax Highlighting
 I only include vim scripts because if you are not using vim, are you really a programmer?
 
-Copy the highlighting script (`le.vim`) to the `~/.vim/syntax/le.vim`.
+Copy the highlighting script (`le.vim`) to the `~/.vim/syntax/le.vim`.</br>
 Then create `~/.vim/ftdetect/le.vim` and write 
 `au BufRead,BufNewFile *.le set filetype=le` to it to associate .le files 
 with leuchtkraft scripts.
