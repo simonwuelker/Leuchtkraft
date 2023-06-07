@@ -20,7 +20,7 @@ Y? => canfly(mary) => Y? // Indeterminate (mary's health is unknown)
 Z? => canfly(jane) => Z? // True (jane is a healthy bird)
 ```
 
-Check out [my blog post](https://wuelle.dev/blog/posts/leuchtkraft/) for more
+Check out [my blog post](https://web.archive.org/web/20220703170101/https://wuelle.dev/blog/posts/leuchtkraft/) for more
 information on how to use Leuchtkraft.
 
 ## Installation
